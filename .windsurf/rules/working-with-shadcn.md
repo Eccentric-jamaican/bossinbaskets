@@ -1,5 +1,5 @@
 ---
-trigger: model_decision
+trigger: always_on
 description: Apply when adding UI components
 ---
 For this  project we are using shadcn ui for our UI components. please follow this guideline on where to use each component based on what the user wants added in the frontend.
