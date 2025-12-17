@@ -38,6 +38,7 @@ export default defineSchema({
     .index("by_categoryId", ["categoryId"])
     .index("by_isFeatured", ["isFeatured"])
     .index("by_isActive", ["isActive"])
+    .index("by_isActive_and_price", ["isActive", "price"])
     .index("by_categoryId_and_isActive", ["categoryId", "isActive"])
     .searchIndex("search_products", {
       searchField: "name",
