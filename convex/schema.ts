@@ -38,7 +38,10 @@ export default defineSchema({
     .index("by_categoryId", ["categoryId"])
     .index("by_isFeatured", ["isFeatured"])
     .index("by_isActive", ["isActive"])
-    .index("by_categoryId_and_isActive", ["categoryId", "isActive"]),
+    .index("by_categoryId_and_isActive", ["categoryId", "isActive"])
+    .searchIndex("search_products", {
+      searchField: "name",
+    }),
 
   // User roles for admin/customer distinction
   users: defineTable({

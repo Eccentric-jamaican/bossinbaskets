@@ -4,7 +4,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 
-const MOCK_PRODUCTS = [
+interface Product {
+  id: number
+  title: string
+  description: string
+  price: number
+  unit: string
+  image: string
+  category: string
+}
+
+const MOCK_PRODUCTS: Product[] = [
   {
     id: 1,
     title: "The Executive",
@@ -129,7 +139,9 @@ export default function BossPicks() {
   )
 }
 
-function ProductCard({ product }: { product: any }) {
+function ProductCard({ product }: { product: Product }) {
+  const imageUrl = product.image.trim() ? product.image : undefined
+
   return (
     <div className="group flex flex-col gap-5 h-full">
       {/* Image Frame */}
@@ -144,9 +156,21 @@ function ProductCard({ product }: { product: any }) {
         
         {/* Image Container */}
         <div className="relative h-full w-full overflow-hidden rounded-[1.5rem] bg-gray-100">
-          <div className="absolute inset-0 flex items-center justify-center text-gray-400 bg-gradient-to-t from-gray-200 to-gray-50 transition-transform duration-700 group-hover:scale-105">
-            <span className="text-sm font-medium">Image: {product.title}</span>
-          </div>
+          {imageUrl ? (
+            <img
+              src={imageUrl}
+              alt={product.title}
+              loading="lazy"
+              decoding="async"
+              width={800}
+              height={1000}
+              className="h-full w-full object-cover object-center transition-transform duration-700 group-hover:scale-105"
+            />
+          ) : (
+            <div className="absolute inset-0 flex items-center justify-center text-gray-400 bg-gradient-to-t from-gray-200 to-gray-50 transition-transform duration-700 group-hover:scale-105">
+              <span className="text-sm font-medium">Image: {product.title}</span>
+            </div>
+          )}
         </div>
       </div>
 

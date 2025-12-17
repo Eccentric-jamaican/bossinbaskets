@@ -10,8 +10,15 @@ import {
 } from "@/components/ui/carousel"
 import { Card, CardContent } from "@/components/ui/card"
 
+interface Testimonial {
+  quote: string
+  author: string
+  role: string
+  rating: number
+}
+
 export default function Testimonials() {
-  const testimonials = [
+  const testimonials: Testimonial[] = [
     {
       quote: "I sent a basket to my mom for her birthday and she was in tears. The presentation was absolutely stunning and the products were delicious.",
       author: "Sarah Mitchell",
@@ -66,9 +73,17 @@ export default function Testimonials() {
                 <Card className="h-full border-none bg-white shadow-sm hover:shadow-md transition-shadow duration-300">
                   <CardContent className="flex flex-col justify-between h-full p-6 md:p-8">
                     <div>
-                      <div className="flex gap-1 mb-4">
+                      <div
+                        className="flex gap-1 mb-4"
+                        role="img"
+                        aria-label={`${testimonial.rating} out of 5 stars`}
+                      >
                         {[...Array(testimonial.rating)].map((_, i) => (
-                          <Star key={i} className="h-5 w-5 fill-[#fbbf24] text-[#fbbf24]" />
+                          <Star
+                            key={i}
+                            aria-hidden="true"
+                            className="h-5 w-5 fill-[#fbbf24] text-[#fbbf24]"
+                          />
                         ))}
                       </div>
                       <blockquote className="text-lg text-[#002684]/80 leading-relaxed mb-6 font-medium">

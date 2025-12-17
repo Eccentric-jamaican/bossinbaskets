@@ -114,6 +114,10 @@ export const add = mutation({
       throw new Error("Unauthorized");
     }
 
+    if (!Number.isInteger(args.quantity) || args.quantity < 1) {
+      throw new Error("Quantity must be an integer greater than or equal to 1");
+    }
+
     const user = await ctx.db
       .query("users")
       .withIndex("by_clerkId", (q) => q.eq("clerkId", identity.subject))
@@ -197,6 +201,10 @@ export const updateQuantity = mutation({
     if (args.quantity <= 0) {
       await ctx.db.delete(args.cartItemId);
       return null;
+    }
+
+    if (!Number.isInteger(args.quantity)) {
+      throw new Error("Quantity must be an integer");
     }
 
     // Check inventory

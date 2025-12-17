@@ -1,5 +1,7 @@
 "use client"
 
+import type { FormEvent } from "react"
+
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 
@@ -24,10 +26,24 @@ export default function Newsletter() {
 
           {/* Form */}
           <div className="flex-1 w-full max-w-md">
-            <form className="flex flex-col sm:flex-row gap-3" onSubmit={(e) => e.preventDefault()}>
-              <Input 
-                type="email" 
-                placeholder="Enter your email" 
+            <form
+              className="flex flex-col sm:flex-row gap-3"
+              onSubmit={(e: FormEvent<HTMLFormElement>) => {
+                e.preventDefault()
+                const formData = new FormData(e.currentTarget)
+                formData.get("email")
+              }}
+            >
+              <label htmlFor="newsletter-email" className="sr-only">
+                Email address
+              </label>
+              <Input
+                id="newsletter-email"
+                name="email"
+                type="email"
+                placeholder="Enter your email"
+                required
+                aria-label="Email address for newsletter subscription"
                 className="h-12 bg-white/10 border-white/20 text-white placeholder:text-blue-200/70 focus-visible:ring-white/30"
               />
               <Button 

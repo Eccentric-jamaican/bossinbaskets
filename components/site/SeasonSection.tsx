@@ -14,28 +14,34 @@ export default function SeasonSection() {
     const container = containerRef.current
     const text = textRef.current
 
-    if (!container || !text) return
+    const anim =
+      container && text
+        ? gsap.fromTo(
+            text,
+            {
+              y: 100,
+              opacity: 0,
+            },
+            {
+              y: -50, // Move up as we scroll
+              opacity: 1,
+              ease: "none",
+              scrollTrigger: {
+                trigger: container,
+                start: "top bottom", // Start when container top hits bottom of viewport
+                end: "center center", // End when container center hits center of viewport
+                scrub: 1, // Tie animation to scroll bar with 1s lag for smoothness
+              },
+            }
+          )
+        : null
 
     // Parallax text reveal
     // The text will move slower than the scroll and fade in
-    gsap.fromTo(
-      text,
-      {
-        y: 100,
-        opacity: 0,
-      },
-      {
-        y: -50, // Move up as we scroll
-        opacity: 1,
-        ease: "none",
-        scrollTrigger: {
-          trigger: container,
-          start: "top bottom", // Start when container top hits bottom of viewport
-          end: "center center", // End when container center hits center of viewport
-          scrub: 1, // Tie animation to scroll bar with 1s lag for smoothness
-        },
-      }
-    )
+    return () => {
+      anim?.scrollTrigger?.kill()
+      anim?.kill()
+    }
   }, [])
 
   return (

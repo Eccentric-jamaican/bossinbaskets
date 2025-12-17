@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import { useUser } from "@clerk/nextjs"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -12,6 +13,8 @@ import {
 } from "@/components/ui/sheet"
 
 export default function Nav() {
+  const { isSignedIn } = useUser()
+
   return (
     <header className="w-full bg-[#f7f4ee]">
       <div className="mx-auto w-full max-w-6xl px-4 md:px-8">
@@ -41,12 +44,16 @@ export default function Nav() {
 
                     <div className="h-px w-full bg-border" />
 
-                    <Button asChild variant="ghost" className="h-12 min-h-[44px] justify-start text-body text-[#002684] hover:text-[#002684]/80">
-                      <Link href="/sign-in">Login</Link>
-                    </Button>
-                    <Button asChild variant="ghost" className="h-12 min-h-[44px] justify-start text-body text-[#002684] hover:text-[#002684]/80">
-                      <Link href="/sign-up">Sign Up</Link>
-                    </Button>
+                    {!isSignedIn && (
+                      <>
+                        <Button asChild variant="ghost" className="h-12 min-h-[44px] justify-start text-body text-[#002684] hover:text-[#002684]/80">
+                          <Link href="/sign-in">Login</Link>
+                        </Button>
+                        <Button asChild variant="ghost" className="h-12 min-h-[44px] justify-start text-body text-[#002684] hover:text-[#002684]/80">
+                          <Link href="/sign-up">Sign Up</Link>
+                        </Button>
+                      </>
+                    )}
 
                     <Button asChild className="h-12 min-h-[44px] rounded-full bg-[#1d4ed8] px-6 text-white hover:bg-[#1d4ed8]/90">
                       <Link href="#">Shop now</Link>
@@ -71,12 +78,16 @@ export default function Nav() {
 
             <div className="flex items-center justify-end gap-2">
               <div className="hidden lg:flex flex-col gap-2 lg:flex-row lg:items-center">
-                <Button asChild variant="ghost" className="h-12 min-h-[44px] px-3 text-body font-semibold text-[#002684] hover:bg-transparent hover:text-[#002684]/80">
-                  <Link href="/sign-in">Login</Link>
-                </Button>
-                <Button asChild variant="ghost" className="h-12 min-h-[44px] px-3 text-body font-semibold text-[#002684] hover:bg-transparent hover:text-[#002684]/80">
-                  <Link href="/sign-up">Sign Up</Link>
-                </Button>
+                {!isSignedIn && (
+                  <>
+                    <Button asChild variant="ghost" className="h-12 min-h-[44px] px-3 text-body font-semibold text-[#002684] hover:bg-transparent hover:text-[#002684]/80">
+                      <Link href="/sign-in">Login</Link>
+                    </Button>
+                    <Button asChild variant="ghost" className="h-12 min-h-[44px] px-3 text-body font-semibold text-[#002684] hover:bg-transparent hover:text-[#002684]/80">
+                      <Link href="/sign-up">Sign Up</Link>
+                    </Button>
+                  </>
+                )}
               </div>
 
               <Button asChild className="h-12 min-h-[44px] rounded-full bg-[#1d4ed8] px-6 text-white hover:bg-[#1d4ed8]/90">

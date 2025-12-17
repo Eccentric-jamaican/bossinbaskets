@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
 import { paginationOptsValidator } from "convex/server";
+import type { Doc } from "./_generated/dataModel";
 
 // Product validator for return types
 const productValidator = v.object({
@@ -122,6 +123,32 @@ export const create = mutation({
   },
   returns: v.id("products"),
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Unauthorized");
+    }
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerkId", (q) => q.eq("clerkId", identity.subject))
+      .unique();
+
+    if (!user || user.role !== "admin") {
+      throw new Error("Admin access required");
+    }
+
+    if (args.price <= 0) {
+      throw new Error("Price must be greater than 0");
+    }
+
+    if (args.inventory < 0) {
+      throw new Error("Inventory must be greater than or equal to 0");
+    }
+
+    if (args.compareAtPrice !== undefined && args.compareAtPrice <= args.price) {
+      throw new Error("Compare-at price must be greater than price");
+    }
+
     // Check for duplicate slug
     const existing = await ctx.db
       .query("products")
@@ -180,7 +207,44 @@ export const update = mutation({
   },
   returns: v.null(),
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Unauthorized");
+    }
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerkId", (q) => q.eq("clerkId", identity.subject))
+      .unique();
+
+    if (!user || user.role !== "admin") {
+      throw new Error("Admin access required");
+    }
+
     const { id, ...updates } = args;
+
+    const existingProduct = await ctx.db.get(id);
+    if (!existingProduct) {
+      throw new Error("Product not found");
+    }
+
+    if (updates.price !== undefined && updates.price <= 0) {
+      throw new Error("Price must be greater than 0");
+    }
+
+    if (updates.inventory !== undefined && updates.inventory < 0) {
+      throw new Error("Inventory must be greater than or equal to 0");
+    }
+
+    const effectivePrice = updates.price ?? existingProduct.price;
+    const effectiveCompareAtPrice =
+      updates.compareAtPrice ?? existingProduct.compareAtPrice;
+    if (
+      effectiveCompareAtPrice !== undefined &&
+      effectiveCompareAtPrice <= effectivePrice
+    ) {
+      throw new Error("Compare-at price must be greater than price");
+    }
 
     // If updating slug, check for duplicates
     if (updates.slug) {
@@ -201,15 +265,28 @@ export const update = mutation({
       }
     }
 
-    // Filter out undefined values
-    const filteredUpdates: Record<string, unknown> = {};
-    for (const [key, value] of Object.entries(updates)) {
-      if (value !== undefined) {
-        filteredUpdates[key] = value;
-      }
-    }
+    const patch: Partial<Doc<"products">> = {};
+    if (updates.name !== undefined) patch.name = updates.name;
+    if (updates.slug !== undefined) patch.slug = updates.slug;
+    if (updates.description !== undefined) patch.description = updates.description;
+    if (updates.shortDescription !== undefined)
+      patch.shortDescription = updates.shortDescription;
+    if (updates.price !== undefined) patch.price = updates.price;
+    if (updates.compareAtPrice !== undefined)
+      patch.compareAtPrice = updates.compareAtPrice;
+    if (updates.categoryId !== undefined) patch.categoryId = updates.categoryId;
+    if (updates.images !== undefined) patch.images = updates.images;
+    if (updates.isFeatured !== undefined) patch.isFeatured = updates.isFeatured;
+    if (updates.isActive !== undefined) patch.isActive = updates.isActive;
+    if (updates.inventory !== undefined) patch.inventory = updates.inventory;
+    if (updates.tags !== undefined) patch.tags = updates.tags;
+    if (updates.allowCustomNote !== undefined)
+      patch.allowCustomNote = updates.allowCustomNote;
+    if (updates.metaTitle !== undefined) patch.metaTitle = updates.metaTitle;
+    if (updates.metaDescription !== undefined)
+      patch.metaDescription = updates.metaDescription;
 
-    await ctx.db.patch(id, filteredUpdates);
+    await ctx.db.patch(id, patch);
     return null;
   },
 });
@@ -222,6 +299,24 @@ export const updateInventory = mutation({
   },
   returns: v.null(),
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Unauthorized");
+    }
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerkId", (q) => q.eq("clerkId", identity.subject))
+      .unique();
+
+    if (!user || user.role !== "admin") {
+      throw new Error("Admin access required");
+    }
+
+    if (args.inventory < 0) {
+      throw new Error("Inventory must be greater than or equal to 0");
+    }
+
     await ctx.db.patch(args.id, { inventory: args.inventory });
     return null;
   },
@@ -232,6 +327,20 @@ export const remove = mutation({
   args: { id: v.id("products") },
   returns: v.null(),
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Unauthorized");
+    }
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerkId", (q) => q.eq("clerkId", identity.subject))
+      .unique();
+
+    if (!user || user.role !== "admin") {
+      throw new Error("Admin access required");
+    }
+
     await ctx.db.delete(args.id);
     return null;
   },
@@ -239,19 +348,22 @@ export const remove = mutation({
 
 // Search products by name or tags
 export const search = query({
-  args: { query: v.string() },
+  args: { query: v.string(), limit: v.optional(v.number()) },
   returns: v.array(productValidator),
   handler: async (ctx, args) => {
-    const searchTerm = args.query.toLowerCase();
-    const products = await ctx.db
-      .query("products")
-      .withIndex("by_isActive", (q) => q.eq("isActive", true))
-      .collect();
+    const limit = Math.min(args.limit ?? 20, 100);
+    const searchTerm = args.query.trim();
+    if (!searchTerm) {
+      return [];
+    }
 
-    return products.filter(
-      (product) =>
-        product.name.toLowerCase().includes(searchTerm) ||
-        product.tags.some((tag) => tag.toLowerCase().includes(searchTerm))
-    );
+    const rawProducts = await ctx.db
+      .query("products")
+      .withSearchIndex("search_products", (q) =>
+        q.search("name", searchTerm)
+      )
+      .take(Math.min(limit * 3, 100));
+
+    return rawProducts.filter((p) => p.isActive).slice(0, limit);
   },
 });

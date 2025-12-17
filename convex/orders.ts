@@ -60,10 +60,11 @@ const orderValidator = v.object({
 });
 
 // Generate unique order number
-function generateOrderNumber(): string {
+function generateOrderNumber(orderId?: string): string {
   const timestamp = Date.now().toString(36).toUpperCase();
   const random = Math.random().toString(36).substring(2, 6).toUpperCase();
-  return `BB-${timestamp}-${random}`;
+  const base = `BB-${timestamp}-${random}`;
+  return orderId ? `${base}-${orderId}` : base;
 }
 
 // Get user's orders with pagination
@@ -237,7 +238,7 @@ export const createFromCart = mutation({
     // Create order
     const orderId = await ctx.db.insert("orders", {
       userId: user._id,
-      orderNumber: generateOrderNumber(),
+      orderNumber: "PENDING",
       status: "pending",
       items: orderItems,
       subtotal,
@@ -248,6 +249,10 @@ export const createFromCart = mutation({
       isGift: args.isGift,
       giftMessage: args.giftMessage,
       paymentStatus: "pending",
+    });
+
+    await ctx.db.patch(orderId, {
+      orderNumber: generateOrderNumber(orderId),
     });
 
     // Clear cart
