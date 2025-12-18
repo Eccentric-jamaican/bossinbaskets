@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef } from "react"
+import { useLayoutEffect, useRef } from "react"
 import { gsap } from "gsap"
 import { ScrollTrigger } from "gsap/ScrollTrigger"
 
@@ -10,45 +10,39 @@ export default function SeasonSection() {
   const containerRef = useRef<HTMLDivElement>(null)
   const textRef = useRef<HTMLHeadingElement>(null)
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const container = containerRef.current
     const text = textRef.current
+
+    if (!container || !text) return
 
     // Respect reduced motion preference
     const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches
     if (prefersReducedMotion) {
-      if (text) {
-        text.style.opacity = "1"
-        text.style.transform = "translateY(0)"
-      }
+      gsap.set(text, { opacity: 1, y: 0, clearProps: "transform" })
       return
     }
 
-    const anim =
-      container && text
-        ? gsap.fromTo(
-            text,
-            {
-              y: 100,
-              opacity: 0,
-            },
-            {
-              y: -50,
-              opacity: 1,
-              ease: "none",
-              scrollTrigger: {
-                trigger: container,
-                start: "top bottom",
-                end: "center center",
-                scrub: 1,
-              },
-            }
-          )
-        : null
+    const ctx = gsap.context(() => {
+      gsap.set(text, { y: 100, opacity: 0 })
+      gsap.to(text, {
+        y: -50,
+        opacity: 1,
+        ease: "none",
+        scrollTrigger: {
+          trigger: container,
+          start: "top bottom",
+          end: "center center",
+          scrub: 1,
+          invalidateOnRefresh: true,
+        },
+      })
+    }, container)
+
+    ScrollTrigger.refresh()
 
     return () => {
-      anim?.scrollTrigger?.kill()
-      anim?.kill()
+      ctx.revert()
     }
   }, [])
 
