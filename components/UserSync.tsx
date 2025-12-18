@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useCallback } from "react"
+import { useEffect, useRef } from "react"
 import { useUser } from "@clerk/nextjs"
 import { useMutation } from "convex/react"
 import { api } from "@/convex/_generated/api"
@@ -12,7 +12,7 @@ import { api } from "@/convex/_generated/api"
  *
  * Uses a snapshot hash to detect changes and avoid duplicate syncs.
  * Only updates lastSyncedRef after a successful upsert.
- * Re-syncs if user data changes during an in-progress sync.
+ * Uses setTimeout to re-sync with fresh closure if data changed during sync.
  */
 export default function UserSync() {
   const { isLoaded, isSignedIn, user } = useUser()
@@ -20,24 +20,52 @@ export default function UserSync() {
   const isSyncingRef = useRef(false)
   const lastSyncedRef = useRef<string | null>(null)
   const pendingSnapshotRef = useRef<string | null>(null)
-
-  const getSnapshot = useCallback(() => {
-    if (!user) return null
-    const email = user.primaryEmailAddress?.emailAddress
-    if (!email) return null
-    const name = user.fullName ?? user.username ?? ""
-    return { snapshot: `${user.id}|${email}|${name}`, clerkId: user.id, email, name }
-  }, [user])
+  const syncFnRef = useRef<(() => void) | null>(null)
 
   useEffect(() => {
-    if (!isLoaded || !isSignedIn || !user) {
-      return
+    const doSync = async () => {
+      if (!isLoaded || !isSignedIn || !user) return
+      if (isSyncingRef.current) return
+
+      const email = user.primaryEmailAddress?.emailAddress
+      if (!email) return
+
+      const name = user.fullName ?? user.username ?? ""
+      const snapshot = `${user.id}|${email}|${name}`
+
+      if (snapshot === lastSyncedRef.current) return
+
+      isSyncingRef.current = true
+      pendingSnapshotRef.current = null
+
+      try {
+        await upsertUser({
+          clerkId: user.id,
+          email,
+          name: name || undefined,
+        })
+        lastSyncedRef.current = snapshot
+      } catch (err) {
+        console.error("Failed to sync user to Convex:", err)
+      } finally {
+        isSyncingRef.current = false
+
+        if (pendingSnapshotRef.current !== null && pendingSnapshotRef.current !== snapshot) {
+          pendingSnapshotRef.current = null
+          setTimeout(() => syncFnRef.current?.(), 0)
+        }
+      }
     }
 
-    const data = getSnapshot()
-    if (!data) return
+    syncFnRef.current = doSync
 
-    const { snapshot } = data
+    if (!isLoaded || !isSignedIn || !user) return
+
+    const email = user.primaryEmailAddress?.emailAddress
+    if (!email) return
+
+    const name = user.fullName ?? user.username ?? ""
+    const snapshot = `${user.id}|${email}|${name}`
 
     if (snapshot === lastSyncedRef.current) return
 
@@ -46,42 +74,8 @@ export default function UserSync() {
       return
     }
 
-    const doSync = async () => {
-      isSyncingRef.current = true
-
-      while (true) {
-        const currentData = getSnapshot()
-        if (!currentData) break
-
-        const { snapshot: currentSnapshot, clerkId, email, name } = currentData
-
-        if (currentSnapshot === lastSyncedRef.current) break
-
-        try {
-          await upsertUser({
-            clerkId,
-            email,
-            name: name || undefined,
-          })
-          lastSyncedRef.current = currentSnapshot
-        } catch (err) {
-          console.error("Failed to sync user to Convex:", err)
-          break
-        }
-
-        if (pendingSnapshotRef.current === null || pendingSnapshotRef.current === currentSnapshot) {
-          pendingSnapshotRef.current = null
-          break
-        }
-
-        pendingSnapshotRef.current = null
-      }
-
-      isSyncingRef.current = false
-    }
-
     void doSync()
-  }, [isLoaded, isSignedIn, user, upsertUser, getSnapshot])
+  }, [isLoaded, isSignedIn, user, upsertUser])
 
   return null
 }

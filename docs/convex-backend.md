@@ -295,7 +295,7 @@ When a user signs in via Clerk, they must also exist in the Convex `users` table
    - Only calls `api.users.upsert` when the snapshot differs from the last successful sync
    - Uses `isSyncingRef` to prevent concurrent duplicate calls (Strict Mode safe)
    - Uses `pendingSnapshotRef` to queue changes that occur during an in-progress sync
-   - Loops after each sync to check if newer data needs syncing
+   - Uses `setTimeout(() => syncFnRef.current?.(), 0)` to re-sync with fresh closure
    - Updates `lastSyncedRef` only after a successful upsert
    - Renders nothing (logic-only component)
 
@@ -310,17 +310,19 @@ UserSync computes snapshot: "clerkId|email|name"
        ↓
 If snapshot !== lastSyncedRef:
   - If syncing: store snapshot in pendingSnapshotRef, return
-  - If not syncing: start sync loop
+  - If not syncing: start doSync()
        ↓
-Sync loop:
-  1. Set isSyncingRef = true
-  2. Get current snapshot from getSnapshot()
-  3. If snapshot === lastSyncedRef, break
+doSync():
+  1. Set isSyncingRef = true, clear pendingSnapshotRef
+  2. Compute snapshot from current closure values
+  3. If snapshot === lastSyncedRef, return
   4. Call api.users.upsert
   5. On success: set lastSyncedRef = snapshot
-  6. On error: log and break
-  7. If pendingSnapshotRef differs, loop again
-  8. Set isSyncingRef = false
+  6. On error: log error
+  7. Finally: set isSyncingRef = false
+  8. If pendingSnapshotRef differs from synced snapshot:
+     → setTimeout(() => syncFnRef.current?.(), 0)
+       (re-invokes with fresh closure)
        ↓
 User record created/updated in Convex users table
        ↓
@@ -339,9 +341,9 @@ cart.add, orders.createFromCart, etc. now work
 - **Snapshot-based change detection:** Only syncs when user data actually changes
 - **`isSyncingRef` guard:** Prevents concurrent duplicate calls in React Strict Mode
 - **`pendingSnapshotRef`:** Queues changes that occur during an in-progress sync
-- **Sync loop:** Re-syncs if user data changed while a sync was in progress
+- **`setTimeout` re-invocation:** Schedules a new sync with fresh closure values (avoids stale closure in loops)
+- **`syncFnRef`:** Stores reference to latest doSync function for setTimeout callback
 - **`lastSyncedRef` updated after success:** Ensures failed syncs can be retried
-- **Break on error:** Prevents infinite loops on persistent failures
 
 ---
 
