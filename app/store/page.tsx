@@ -3,8 +3,8 @@
 import { useMemo, useState } from "react"
 import { usePaginatedQuery, useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
-import { ProductCard } from "@/components/store/ProductCard"
-import { CategoryPills } from "@/components/store/CategoryPills"
+import { ProductCard } from "@/components/store/ProductCardClient"
+import { CategoryPills } from "@/components/store/CategoryPillsClient"
 import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
 import {
@@ -76,6 +76,57 @@ function normalizeFilters(
     minPrice,
     maxPrice,
   }
+}
+
+type PriceInputsProps = {
+  minPrice: number | null
+  maxPrice: number | null
+  onChange: (minPrice: number | null, maxPrice: number | null) => void
+  className?: string
+}
+
+function PriceInputs({ minPrice, maxPrice, onChange, className }: PriceInputsProps) {
+  const parsePriceInput = (raw: string, prevCents: number | null) => {
+    const trimmed = raw.trim()
+    if (trimmed === "") return null
+
+    const parsed = Number(trimmed)
+    if (!Number.isFinite(parsed)) return prevCents
+
+    const dollars = Math.max(0, Math.round(parsed))
+    return dollars * 100
+  }
+
+  return (
+    <div className={className}>
+      <Input
+        type="number"
+        inputMode="numeric"
+        min={0}
+        step={1}
+        value={minPrice !== null ? (minPrice / 100).toFixed(0) : ""}
+        onChange={(e) => {
+          const nextMin = parsePriceInput(e.target.value, minPrice)
+          onChange(nextMin, maxPrice)
+        }}
+        placeholder="Min ($)"
+        className="h-12 min-h-[44px] w-full rounded-full border-[#002684]/20 bg-white/60 px-4 text-[#002684] placeholder:text-[#002684]/40"
+      />
+      <Input
+        type="number"
+        inputMode="numeric"
+        min={0}
+        step={1}
+        value={maxPrice !== null ? (maxPrice / 100).toFixed(0) : ""}
+        onChange={(e) => {
+          const nextMax = parsePriceInput(e.target.value, maxPrice)
+          onChange(minPrice, nextMax)
+        }}
+        placeholder="Max ($)"
+        className="h-12 min-h-[44px] w-full rounded-full border-[#002684]/20 bg-white/60 px-4 text-[#002684] placeholder:text-[#002684]/40"
+      />
+    </div>
+  )
 }
 
 export default function StorePage() {
@@ -327,96 +378,32 @@ export default function StorePage() {
                         className="h-12"
                       />
 
-                      <div className="flex flex-col gap-3 md:flex-row">
-                        <Input
-                          type="number"
-                          inputMode="numeric"
-                          min={0}
-                          step={1}
-                          value={
-                            draftFilters.minPrice !== null
-                              ? (draftFilters.minPrice / 100).toFixed(0)
-                              : ""
-                          }
-                          onChange={(e) => {
-                            const raw = e.target.value
-                            setDraftFilters((prev) => ({
-                              ...prev,
-                              minPrice:
-                                raw.trim() === "" ? null : Math.max(0, Number(raw)) * 100,
-                            }))
-                          }}
-                          placeholder="Min ($)"
-                          className="h-12 min-h-[44px] w-full rounded-full border-[#002684]/20 bg-white/60 px-4 text-[#002684] placeholder:text-[#002684]/40"
-                        />
-                        <Input
-                          type="number"
-                          inputMode="numeric"
-                          min={0}
-                          step={1}
-                          value={
-                            draftFilters.maxPrice !== null
-                              ? (draftFilters.maxPrice / 100).toFixed(0)
-                              : ""
-                          }
-                          onChange={(e) => {
-                            const raw = e.target.value
-                            setDraftFilters((prev) => ({
-                              ...prev,
-                              maxPrice:
-                                raw.trim() === "" ? null : Math.max(0, Number(raw)) * 100,
-                            }))
-                          }}
-                          placeholder="Max ($)"
-                          className="h-12 min-h-[44px] w-full rounded-full border-[#002684]/20 bg-white/60 px-4 text-[#002684] placeholder:text-[#002684]/40"
-                        />
-                      </div>
+                      <PriceInputs
+                        minPrice={draftFilters.minPrice}
+                        maxPrice={draftFilters.maxPrice}
+                        onChange={(minPrice, maxPrice) => {
+                          setDraftFilters((prev) => ({
+                            ...prev,
+                            minPrice,
+                            maxPrice,
+                          }))
+                        }}
+                        className="flex flex-col gap-3 md:flex-row"
+                      />
                     </div>
                   ) : (
-                    <div className="flex flex-col gap-3">
-                      <Input
-                        type="number"
-                        inputMode="numeric"
-                        min={0}
-                        step={1}
-                        value={
-                          draftFilters.minPrice !== null
-                            ? (draftFilters.minPrice / 100).toFixed(0)
-                            : ""
-                        }
-                        onChange={(e) => {
-                          const raw = e.target.value
-                          setDraftFilters((prev) => ({
-                            ...prev,
-                            minPrice:
-                              raw.trim() === "" ? null : Math.max(0, Number(raw)) * 100,
-                          }))
-                        }}
-                        placeholder="Min ($)"
-                        className="h-12 min-h-[44px] w-full rounded-full border-[#002684]/20 bg-white/60 px-4 text-[#002684] placeholder:text-[#002684]/40"
-                      />
-                      <Input
-                        type="number"
-                        inputMode="numeric"
-                        min={0}
-                        step={1}
-                        value={
-                          draftFilters.maxPrice !== null
-                            ? (draftFilters.maxPrice / 100).toFixed(0)
-                            : ""
-                        }
-                        onChange={(e) => {
-                          const raw = e.target.value
-                          setDraftFilters((prev) => ({
-                            ...prev,
-                            maxPrice:
-                              raw.trim() === "" ? null : Math.max(0, Number(raw)) * 100,
-                          }))
-                        }}
-                        placeholder="Max ($)"
-                        className="h-12 min-h-[44px] w-full rounded-full border-[#002684]/20 bg-white/60 px-4 text-[#002684] placeholder:text-[#002684]/40"
-                      />
-                    </div>
+                    <PriceInputs
+                      minPrice={draftFilters.minPrice}
+                      maxPrice={draftFilters.maxPrice}
+                      onChange={(minPrice, maxPrice) => {
+                        setDraftFilters((prev) => ({
+                          ...prev,
+                          minPrice,
+                          maxPrice,
+                        }))
+                      }}
+                      className="flex flex-col gap-3"
+                    />
                   )}
                 </div>
               </div>

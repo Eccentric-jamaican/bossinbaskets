@@ -1,3 +1,5 @@
+"use client"
+
 import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
 import { Doc } from "@/convex/_generated/dataModel"
@@ -7,13 +9,7 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product }: ProductCardProps) {
-  const images = (product as { images?: unknown }).images
-  const firstImage =
-    Array.isArray(images) && images.length > 0 ? (images[0] as unknown) : null
-  const imageUrl =
-    typeof firstImage === "string" && firstImage.trim() !== ""
-      ? firstImage
-      : "/placeholder.jpg"
+  const imageUrl = product.images?.[0] ?? "/placeholder.jpg"
 
   return (
     <Link href={`/store/products/${product.slug}`} className="group block h-full">
@@ -62,7 +58,7 @@ export function ProductCard({ product }: ProductCardProps) {
                 </span>
               )}
             </div>
-            
+
             <span className="inline-flex items-center justify-center h-12 min-h-[44px] rounded-full border border-[#1d4ed8] px-6 text-sm-fluid font-semibold text-[#1d4ed8] transition-all group-hover:bg-[#1d4ed8] group-hover:text-white">
               View
             </span>

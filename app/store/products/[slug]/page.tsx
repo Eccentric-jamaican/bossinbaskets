@@ -1,18 +1,33 @@
 "use client"
 
-import { useQuery } from "convex/react"
+import { useEffect, useState } from "react"
+import { useMutation, useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { useParams } from "next/navigation"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
+import { Spinner } from "@/components/ui/spinner"
 import { Star, Truck, ShieldCheck, Gift } from "lucide-react"
 
 export default function ProductDetailPage() {
   const params = useParams()
   const slug = params.slug as string
   const product = useQuery(api.products.getBySlug, { slug })
+  const addToCart = useMutation(api.cart.add)
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0)
+  const [quantity, setQuantity] = useState(1)
+  const [isAddingToCart, setIsAddingToCart] = useState(false)
+  const [addToCartError, setAddToCartError] = useState<string | null>(null)
+  const [addToCartSuccess, setAddToCartSuccess] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!product || product.images.length === 0) return
+    if (selectedImageIndex < 0 || selectedImageIndex >= product.images.length) {
+      setSelectedImageIndex(0)
+    }
+  }, [product, selectedImageIndex])
 
   if (product === undefined) {
     return <ProductSkeleton />
@@ -27,7 +42,40 @@ export default function ProductDetailPage() {
     )
   }
 
-  const imageUrl = product.images[0] || "/placeholder.jpg"
+  const imageUrl =
+    product.images?.[selectedImageIndex] ?? product.images?.[0] ?? "/placeholder.jpg"
+
+  const maxQuantity = Math.max(1, product.inventory)
+  const isDecrementDisabled = isAddingToCart || quantity <= 1
+  const isIncrementDisabled = isAddingToCart || quantity >= maxQuantity
+
+  const handleDecrement = () => {
+    setQuantity((prev) => Math.max(1, prev - 1))
+  }
+
+  const handleIncrement = () => {
+    setQuantity((prev) => Math.min(maxQuantity, prev + 1))
+  }
+
+  const totalPriceLabel = ((product.price * quantity) / 100).toFixed(2)
+
+  const handleAddToCart = async () => {
+    setAddToCartError(null)
+    setAddToCartSuccess(null)
+    setIsAddingToCart(true)
+
+    try {
+      await addToCart({
+        productId: product._id,
+        quantity,
+      })
+      setAddToCartSuccess("Added to cart")
+    } catch (error) {
+      setAddToCartError(error instanceof Error ? error.message : "Failed to add to cart")
+    } finally {
+      setIsAddingToCart(false)
+    }
+  }
 
   return (
     <div className="flex flex-col lg:flex-row gap-8 lg:gap-16">
@@ -50,9 +98,15 @@ export default function ProductDetailPage() {
         {product.images.length > 1 && (
           <div className="flex gap-4 mt-6 overflow-x-auto pb-2">
             {product.images.map((img, i) => (
-              <button 
+              <button
                 key={i}
-                className="relative aspect-square w-20 flex-shrink-0 overflow-hidden rounded-xl border-2 border-transparent hover:border-[#1d4ed8] transition-all"
+                type="button"
+                onClick={() => setSelectedImageIndex(i)}
+                className={`relative aspect-square w-20 flex-shrink-0 overflow-hidden rounded-xl border-2 transition-all ${
+                  i === selectedImageIndex
+                    ? "border-[#1d4ed8]"
+                    : "border-transparent hover:border-[#1d4ed8]"
+                }`}
               >
                 <img src={img} alt={`${product.name} ${i + 1}`} className="h-full w-full object-cover" />
               </button>
@@ -126,19 +180,58 @@ export default function ProductDetailPage() {
         <div className="flex flex-col gap-4 mt-auto">
           {product.inventory > 0 ? (
             <div className="flex gap-4">
-               {/* Quantity Selector Placeholder */}
-               <div className="h-14 w-24 rounded-full border border-[#002684]/20 flex items-center justify-center text-lg font-medium text-[#002684]">
-                 1
-               </div>
-               
-               <Button className="flex-1 h-14 rounded-full text-lg font-bold bg-[#1d4ed8] hover:bg-[#1d4ed8]/90 text-white shadow-lg shadow-[#1d4ed8]/20">
-                 Add to Cart - ${(product.price / 100).toFixed(2)}
-               </Button>
+              <div className="h-14 w-32 rounded-full border border-[#002684]/20 bg-white/60 flex items-center justify-between px-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={handleDecrement}
+                  disabled={isDecrementDisabled}
+                  aria-label="Decrease quantity"
+                  className="h-12 min-h-[44px] w-12 min-w-[44px] rounded-full text-[#002684] hover:bg-white"
+                >
+                  -
+                </Button>
+                <span className="text-body font-medium text-[#002684]">{quantity}</span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={handleIncrement}
+                  disabled={isIncrementDisabled}
+                  aria-label="Increase quantity"
+                  className="h-12 min-h-[44px] w-12 min-w-[44px] rounded-full text-[#002684] hover:bg-white"
+                >
+                  +
+                </Button>
+              </div>
+
+              <Button
+                type="button"
+                onClick={handleAddToCart}
+                disabled={isAddingToCart}
+                className="flex-1 h-14 min-h-[44px] rounded-full font-semibold bg-[#1d4ed8] hover:bg-[#1d4ed8]/90 text-white shadow-lg shadow-[#1d4ed8]/20 disabled:opacity-60"
+              >
+                {isAddingToCart ? (
+                  <span className="inline-flex items-center gap-2">
+                    <Spinner className="size-4" />
+                    Adding
+                  </span>
+                ) : (
+                  `Add to Cart - $${totalPriceLabel}`
+                )}
+              </Button>
             </div>
           ) : (
-             <Button disabled className="w-full h-14 rounded-full text-lg font-bold bg-gray-200 text-gray-500">
+             <Button disabled className="w-full h-14 min-h-[44px] rounded-full font-semibold bg-gray-200 text-gray-500">
                Out of Stock
              </Button>
+          )}
+
+          {addToCartError && (
+            <p className="text-sm-fluid text-red-600 text-center">{addToCartError}</p>
+          )}
+
+          {!addToCartError && addToCartSuccess && (
+            <p className="text-sm-fluid text-[#1d4ed8] text-center">{addToCartSuccess}</p>
           )}
           
           <p className="text-center text-xs text-[#002684]/50 mt-2">
