@@ -58,6 +58,7 @@ export default defineSchema({
         state: v.string(),
         zipCode: v.string(),
         country: v.string(),
+        phone: v.optional(v.string()),
       })
     ),
   })
@@ -73,7 +74,8 @@ export default defineSchema({
     customNote: v.optional(v.string()),
   })
     .index("by_userId", ["userId"])
-    .index("by_userId_and_productId", ["userId", "productId"]),
+    .index("by_userId_and_productId", ["userId", "productId"])
+    .index("by_productId", ["productId"]),
 
   // Orders
   orders: defineTable({
@@ -115,6 +117,10 @@ export default defineSchema({
     isGift: v.boolean(),
     giftMessage: v.optional(v.string()),
     // Payment
+    paymentMethod: v.union(
+      v.literal("bank_transfer"),
+      v.literal("cash_on_delivery")
+    ),
     paymentIntentId: v.optional(v.string()),
     paymentStatus: v.union(
       v.literal("pending"),
@@ -122,6 +128,8 @@ export default defineSchema({
       v.literal("failed"),
       v.literal("refunded")
     ),
+    // Bank transfer details (for admin reference)
+    bankTransferRef: v.optional(v.string()),
     // Tracking
     trackingNumber: v.optional(v.string()),
     shippedAt: v.optional(v.number()),

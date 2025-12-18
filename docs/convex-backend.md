@@ -145,6 +145,8 @@ Product reviews from customers.
 | `listActive` | query | List all active products (paginated) |
 | `getBySlug` | query | Get product by slug |
 | `getById` | query | Get product by ID |
+| `generateUploadUrl` | mutation | Generate a short-lived upload URL for Convex Storage (admin only) |
+| `getUrlForStorageId` | mutation | Resolve a Convex Storage file id to a GET URL (admin only) |
 | `create` | mutation | Create product (admin) |
 | `update` | mutation | Update product (admin) |
 | `updateInventory` | mutation | Update stock (admin) |

@@ -20,6 +20,7 @@ export const getByClerkId = query({
           state: v.string(),
           zipCode: v.string(),
           country: v.string(),
+          phone: v.optional(v.string()),
         })
       ),
     }),
@@ -52,6 +53,7 @@ export const current = query({
           state: v.string(),
           zipCode: v.string(),
           country: v.string(),
+          phone: v.optional(v.string()),
         })
       ),
     }),
@@ -110,6 +112,7 @@ export const updateAddress = mutation({
     state: v.string(),
     zipCode: v.string(),
     country: v.string(),
+    phone: v.optional(v.string()),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
@@ -127,6 +130,8 @@ export const updateAddress = mutation({
       throw new Error("User not found");
     }
 
+    const trimmedPhone = args.phone?.trim();
+
     await ctx.db.patch(user._id, {
       defaultAddress: {
         street: args.street,
@@ -134,6 +139,7 @@ export const updateAddress = mutation({
         state: args.state,
         zipCode: args.zipCode,
         country: args.country,
+        ...(trimmedPhone ? { phone: trimmedPhone } : {}),
       },
     });
     return null;
