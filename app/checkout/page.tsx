@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useUser } from "@clerk/nextjs"
@@ -55,15 +55,16 @@ export default function CheckoutPage() {
 
   // Pre-fill from user's default address
   const defaultAddress = currentUser?.defaultAddress
-  useState(() => {
-    if (defaultAddress) {
-      setStreet(defaultAddress.street)
-      setCity(defaultAddress.city)
-      setState(defaultAddress.state)
-      setZipCode(defaultAddress.zipCode)
-      setCountry(defaultAddress.country)
-    }
-  })
+  useEffect(() => {
+    if (!defaultAddress) return
+
+    setStreet((prev) => (prev.trim() ? prev : defaultAddress.street))
+    setCity((prev) => (prev.trim() ? prev : defaultAddress.city))
+    setState((prev) => (prev.trim() ? prev : defaultAddress.state))
+    setZipCode((prev) => (prev.trim() ? prev : defaultAddress.zipCode))
+    setCountry((prev) => (prev.trim() ? prev : defaultAddress.country))
+    setPhone((prev) => (prev.trim() ? prev : (defaultAddress.phone ?? "")))
+  }, [defaultAddress])
 
   // Calculate totals
   const subtotalCents = (cartItems ?? []).reduce((sum, item) => {
@@ -178,6 +179,13 @@ export default function CheckoutPage() {
           <p className="text-body text-[#002684]/70 max-w-md">
             Thank you for your order. We&apos;ll send you an email confirmation shortly.
           </p>
+
+          {orderNumber && (
+            <div className="flex flex-col items-center gap-1">
+              <p className="text-sm-fluid text-[#002684]/70">Order Number</p>
+              <p className="text-body font-medium text-[#002684] break-all">{orderNumber}</p>
+            </div>
+          )}
 
           {paymentMethod === "bank_transfer" && (
             <Card className="w-full rounded-2xl">

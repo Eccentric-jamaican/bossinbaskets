@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useMutation, useQuery } from "convex/react"
 import {
   AlertCircle,
@@ -17,6 +17,7 @@ import {
   Truck,
   X,
 } from "lucide-react"
+import { toast } from "sonner"
 
 import { api } from "@/convex/_generated/api"
 import { Id } from "@/convex/_generated/dataModel"
@@ -108,7 +109,20 @@ function OrderCard({ order, onClick }: { order: Order; onClick: () => void }) {
 
   return (
     <div
+      role="button"
+      tabIndex={0}
       onClick={onClick}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") {
+          onClick()
+          return
+        }
+
+        if (e.key === " " || e.key === "Spacebar") {
+          e.preventDefault()
+          onClick()
+        }
+      }}
       className="flex flex-col gap-3 rounded-xl border bg-white p-4 cursor-pointer hover:shadow-md transition-shadow"
     >
       <div className="flex items-start justify-between gap-2">
@@ -157,12 +171,25 @@ function OrderDetailsDialog({
   const [bankRef, setBankRef] = useState("")
   const [isUpdating, setIsUpdating] = useState(false)
 
+  useEffect(() => {
+    setTrackingNumber("")
+    setBankRef("")
+    setIsUpdating(false)
+  }, [order?._id, open])
+
   if (!order) return null
 
   const handleStatusChange = async (newStatus: OrderStatus) => {
     setIsUpdating(true)
     try {
       await updateStatus({ orderId: order._id, status: newStatus })
+      toast.success("Order status updated")
+      return true
+    } catch (err) {
+      toast.error("Failed to update order status", {
+        description: err instanceof Error ? err.message : String(err),
+      })
+      return false
     } finally {
       setIsUpdating(false)
     }
@@ -174,6 +201,13 @@ function OrderDetailsDialog({
     try {
       await updateTracking({ orderId: order._id, trackingNumber: trackingNumber.trim() })
       setTrackingNumber("")
+      toast.success("Tracking number updated")
+      return true
+    } catch (err) {
+      toast.error("Failed to update tracking number", {
+        description: err instanceof Error ? err.message : String(err),
+      })
+      return false
     } finally {
       setIsUpdating(false)
     }
@@ -184,6 +218,13 @@ function OrderDetailsDialog({
     try {
       await markPaymentReceived({ orderId: order._id, bankTransferRef: bankRef.trim() || undefined })
       setBankRef("")
+      toast.success("Payment marked as received")
+      return true
+    } catch (err) {
+      toast.error("Failed to mark payment as received", {
+        description: err instanceof Error ? err.message : String(err),
+      })
+      return false
     } finally {
       setIsUpdating(false)
     }
@@ -194,7 +235,14 @@ function OrderDetailsDialog({
     setIsUpdating(true)
     try {
       await cancelOrder({ orderId: order._id })
+      toast.success("Order cancelled")
       onClose()
+      return true
+    } catch (err) {
+      toast.error("Failed to cancel order", {
+        description: err instanceof Error ? err.message : String(err),
+      })
+      return false
     } finally {
       setIsUpdating(false)
     }
@@ -421,7 +469,7 @@ export default function AdminOrdersPage() {
 
   const [viewMode, setViewMode] = useState<ViewMode>("kanban")
   const [searchQuery, setSearchQuery] = useState("")
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
+  const [selectedOrderId, setSelectedOrderId] = useState<Id<"orders"> | null>(null)
 
   // Flatten orders for table view
   const allOrders = ordersGrouped
@@ -434,6 +482,16 @@ export default function AdminOrdersPage() {
       order.orderNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
       order.shippingAddress.recipientName.toLowerCase().includes(searchQuery.toLowerCase())
   )
+
+  const selectedOrder = selectedOrderId
+    ? allOrders.find((order) => order._id === selectedOrderId) ?? null
+    : null
+
+  useEffect(() => {
+    if (selectedOrderId && !selectedOrder) {
+      setSelectedOrderId(null)
+    }
+  }, [selectedOrderId, selectedOrder])
 
   if (!ordersGrouped || !statusCounts) {
     return (
@@ -539,7 +597,7 @@ export default function AdminOrdersPage() {
                         <OrderCard
                           key={String(order._id)}
                           order={order}
-                          onClick={() => setSelectedOrder(order)}
+                          onClick={() => setSelectedOrderId(order._id)}
                         />
                       ))
                     )}
@@ -617,7 +675,7 @@ export default function AdminOrdersPage() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => setSelectedOrder(order)}
+                            onClick={() => setSelectedOrderId(order._id)}
                             className="h-10 min-h-[44px]"
                           >
                             <Eye className="h-4 w-4 mr-1" />
@@ -637,8 +695,8 @@ export default function AdminOrdersPage() {
       {/* Order Details Dialog */}
       <OrderDetailsDialog
         order={selectedOrder}
-        open={selectedOrder !== null}
-        onClose={() => setSelectedOrder(null)}
+        open={selectedOrderId !== null}
+        onClose={() => setSelectedOrderId(null)}
       />
     </div>
   )

@@ -137,8 +137,10 @@ export default function AdminProductsPage() {
       ? Math.round(Number(priceDollars) * 100)
       : NaN
 
-    const compareAt = compareAtDollars.trim()
-      ? Math.round(Number(compareAtDollars) * 100)
+    const compareAtTrimmed = compareAtDollars.trim()
+    const compareAtParsed = compareAtTrimmed ? Number.parseFloat(compareAtTrimmed) : NaN
+    const compareAt = Number.isFinite(compareAtParsed)
+      ? Math.round(compareAtParsed * 100)
       : undefined
 
     const inventoryNumber = Number.isFinite(Number(inventory))

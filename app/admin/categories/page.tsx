@@ -6,6 +6,16 @@ import { useMutation, useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -38,6 +48,11 @@ export default function AdminCategoriesPage() {
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+  const [categoryToDelete, setCategoryToDelete] = useState<{
+    id: Id<"categories">
+    name: string
+    slug: string
+  } | null>(null)
 
   useEffect(() => {
     if (!slug && name) setSlug(slugify(name))
@@ -302,7 +317,7 @@ export default function AdminCategoriesPage() {
                     <Button
                       type="button"
                       variant="outline"
-                      onClick={() => void onDelete(c._id)}
+                      onClick={() => setCategoryToDelete({ id: c._id, name: c.name, slug: c.slug })}
                       className="h-12 min-h-[44px] rounded-full px-6"
                     >
                       Delete
@@ -312,6 +327,42 @@ export default function AdminCategoriesPage() {
               ))}
             </div>
           )}
+
+          <AlertDialog
+            open={categoryToDelete !== null}
+            onOpenChange={(isOpen) => {
+              if (!isOpen) setCategoryToDelete(null)
+            }}
+          >
+            <AlertDialogContent className="rounded-2xl">
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete category</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Are you sure you want to delete{" "}
+                  <span className="font-medium text-[#002684]">
+                    {categoryToDelete ? categoryToDelete.name : "this category"}
+                  </span>
+                  {categoryToDelete ? ` (/${categoryToDelete.slug})` : ""}? This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter className="flex flex-col gap-3 sm:flex-row sm:justify-end">
+                <AlertDialogCancel className="h-12 min-h-[44px] rounded-full">
+                  Cancel
+                </AlertDialogCancel>
+                <AlertDialogAction
+                  className="h-12 min-h-[44px] rounded-full bg-red-600 text-white hover:bg-red-600/90"
+                  onClick={() => {
+                    if (!categoryToDelete) return
+                    void onDelete(categoryToDelete.id).finally(() => {
+                      setCategoryToDelete(null)
+                    })
+                  }}
+                >
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </CardContent>
       </Card>
     </div>

@@ -58,7 +58,15 @@ orders: defineTable({
   shippingCost: v.number(),
   tax: v.number(),
   total: v.number(),
-  shippingAddress: v.object({...}),
+  shippingAddress: v.object({
+    recipientName: v.string(),
+    street: v.string(),
+    city: v.string(),
+    state: v.string(),
+    zipCode: v.string(),
+    country: v.string(),
+    phone: v.optional(v.string()),
+  }),
   isGift: v.boolean(),
   giftMessage: v.optional(v.string()),
   paymentMethod: v.union(
@@ -76,6 +84,37 @@ orders: defineTable({
   shippedAt: v.optional(v.number()),
   deliveredAt: v.optional(v.number()),
 })
+```
+
+### `shippingAddress` fields
+
+- **`recipientName`** *(required, string)*
+  - Example: `"Jane Doe"`
+- **`street`** *(required, string)*
+  - Example: `"123 Main St Apt 4B"`
+- **`city`** *(required, string)*
+  - Example: `"Kingston"`
+- **`state`** *(required, string)*
+  - Example: `"Kingston 2"`
+- **`zipCode`** *(required, string)*
+  - Example: `"0000"` (keep as a string to preserve leading zeros)
+- **`country`** *(required, string)*
+  - Example: `"Jamaica"`
+- **`phone`** *(optional, string)*
+  - Example: `"8764142853"` or `"+1 212 555 1212"`
+
+Example:
+
+```json
+{
+  "recipientName": "Jane Doe",
+  "street": "123 Main St Apt 4B",
+  "city": "Kingston",
+  "state": "Kingston 2",
+  "zipCode": "0000",
+  "country": "Jamaica",
+  "phone": "8764142853"
+}
 ```
 
 ### Mutations (`convex/orders.ts`)
@@ -175,9 +214,13 @@ await ctx.db.patch(product._id, {
 
 ## Order Number Format
 
-Generated using timestamp + random string:
+Generated using a base36-encoded timestamp + random string + Convex order document id:
 ```
-BB-{timestamp}-{random}-{orderId}
+BB-{timestampBase36}-{randomBase36}-{orderId}
 ```
 
-Example: `BB-M5X2K-A7B9-orders:12345`
+- `timestampBase36` is `Date.now().toString(36).toUpperCase()`
+- `randomBase36` is `Math.random().toString(36).substring(2, 6).toUpperCase()` (4 chars)
+- `orderId` is the Convex `orders` document `_id` (opaque string)
+
+Example: `BB-MJB1L9RG-2X2I-jd7cwzm0757h021mz86kkhjtr17xhj5g`

@@ -257,7 +257,7 @@ export const createFromCart = mutation({
       isGift: args.isGift,
       giftMessage: args.giftMessage,
       paymentMethod: args.paymentMethod,
-      paymentStatus: args.paymentMethod === "cash_on_delivery" ? "pending" : "pending",
+      paymentStatus: "pending",
     });
 
     await ctx.db.patch(orderId, {

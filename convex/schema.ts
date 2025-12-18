@@ -58,6 +58,7 @@ export default defineSchema({
         state: v.string(),
         zipCode: v.string(),
         country: v.string(),
+        phone: v.optional(v.string()),
       })
     ),
   })

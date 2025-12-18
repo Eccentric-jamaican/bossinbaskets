@@ -199,9 +199,8 @@ export default function Nav() {
                             const product = item.product
                             const imageUrl =
                               product?.images?.[0] ?? "/placeholder.jpg"
-                            const maxQuantity = product ? Math.max(1, product.inventory) : 1
                             const isIncrementDisabled =
-                              !product || item.quantity >= maxQuantity
+                              !product || product.inventory <= 0 || item.quantity >= product.inventory
                             const isDecrementDisabled = item.quantity <= 1
 
                             return (
@@ -224,6 +223,10 @@ export default function Nav() {
                                       <p className="text-sm-fluid text-[#002684]/70">
                                         {formatCents(product.price)}
                                       </p>
+                                    ) : null}
+
+                                    {product && product.inventory === 0 ? (
+                                      <p className="text-sm-fluid text-red-600">Out of stock</p>
                                     ) : null}
                                   </div>
                                 </div>

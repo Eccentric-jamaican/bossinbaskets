@@ -195,10 +195,12 @@ Current `proxy.ts`:
   - skips Next.js internals and static files
   - always runs for `/api` and `/trpc`
 
+- Protects `/admin/*` routes by calling `auth.protect()` when the request matches `/admin(.*)`.
+
 Note:
 
-- We attempted to call `.protect()` in the middleware callback, but TypeScript types for the Clerk auth object did not expose `.protect()` in this setup.
-- Route-level admin gating is therefore handled by `AdminGate` + Convex backend role checks.
+- Middleware currently enforces **authentication** (signed-in) for `/admin/*`.
+- Role-based authorization (must be an admin) is enforced by `AdminGate` + Convex backend role checks, because roles are stored in Convex.
 
 ## Environment variables
 
