@@ -278,6 +278,61 @@ function CheckoutForm() {
 - `convex/orders.ts` - Order management
 - `convex/reviews.ts` - Product reviews
 - `convex/auth.config.js` - Clerk authentication config
+- `components/UserSync.tsx` - Syncs Clerk users to Convex on sign-in
+- `components/ConvexClientProvider.tsx` - Convex + Clerk provider wrapper
+
+---
+
+## User Synchronization (Clerk → Convex)
+
+When a user signs in via Clerk, they must also exist in the Convex `users` table for cart, orders, and other authenticated features to work.
+
+### How it works
+
+1. **`components/UserSync.tsx`** — A client component that:
+   - Watches Clerk's `useUser()` hook for sign-in state
+   - Computes a snapshot string of sync fields (`clerkId|email|name`)
+   - Only calls `api.users.upsert` when the snapshot differs from the last successful sync
+   - Uses `isSyncingRef` to prevent concurrent duplicate calls (Strict Mode safe)
+   - Updates `lastSyncedRef` only after a successful upsert
+   - Resets `isSyncingRef` in a `finally` block for deterministic cleanup
+   - Renders nothing (logic-only component)
+
+2. **`components/ConvexClientProvider.tsx`** — Includes `<UserSync />` inside the provider so it runs globally on every page.
+
+### Flow
+
+```
+User signs in via Clerk
+       ↓
+UserSync computes snapshot: "clerkId|email|name"
+       ↓
+If snapshot !== lastSyncedRef and not currently syncing:
+       ↓
+Set isSyncingRef = true, call api.users.upsert
+       ↓
+On success: set lastSyncedRef = snapshot
+On error: log error
+Finally: set isSyncingRef = false
+       ↓
+User record created/updated in Convex users table
+       ↓
+cart.add, orders.createFromCart, etc. now work
+```
+
+### Why this is needed
+
+- `cart.add` and other mutations require the user to exist in Convex
+- Previously, `users.upsert` was only called in `AdminGate` (admin routes)
+- Regular users visiting the store never triggered the upsert
+- Now, `UserSync` ensures all authenticated users are synced globally
+
+### Race condition handling
+
+- **Snapshot-based change detection:** Only syncs when user data actually changes
+- **`isSyncingRef` guard:** Prevents concurrent duplicate calls in React Strict Mode
+- **`lastSyncedRef` updated after success:** Ensures failed syncs can be retried
+- **`finally` block:** Always resets `isSyncingRef` for deterministic cleanup
 
 ---
 
