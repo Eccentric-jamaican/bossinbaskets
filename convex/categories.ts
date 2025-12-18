@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
+import type { MutationCtx, QueryCtx } from "./_generated/server";
 
 // Category validator for return types
 const categoryValidator = v.object({
@@ -12,6 +13,22 @@ const categoryValidator = v.object({
   isActive: v.boolean(),
   sortOrder: v.number(),
 });
+
+async function requireAdmin(ctx: QueryCtx | MutationCtx) {
+  const identity = await ctx.auth.getUserIdentity();
+  if (!identity) {
+    throw new Error("Unauthorized");
+  }
+
+  const user = await ctx.db
+    .query("users")
+    .withIndex("by_clerkId", (q) => q.eq("clerkId", identity.subject))
+    .unique();
+
+  if (!user || user.role !== "admin") {
+    throw new Error("Admin access required");
+  }
+}
 
 // List all active categories
 export const listActive = query({
@@ -31,6 +48,7 @@ export const listAll = query({
   args: {},
   returns: v.array(categoryValidator),
   handler: async (ctx) => {
+    await requireAdmin(ctx);
     const categories = await ctx.db.query("categories").collect();
     return categories.sort((a, b) => a.sortOrder - b.sortOrder);
   },
@@ -61,6 +79,7 @@ export const create = mutation({
   },
   returns: v.id("categories"),
   handler: async (ctx, args) => {
+    await requireAdmin(ctx);
     // Check for duplicate slug
     const existing = await ctx.db
       .query("categories")
@@ -95,6 +114,7 @@ export const update = mutation({
   },
   returns: v.null(),
   handler: async (ctx, args) => {
+    await requireAdmin(ctx);
     const { id, ...updates } = args;
 
     // If updating slug, check for duplicates
@@ -126,6 +146,7 @@ export const remove = mutation({
   args: { id: v.id("categories") },
   returns: v.null(),
   handler: async (ctx, args) => {
+    await requireAdmin(ctx);
     // Check if any products use this category
     const products = await ctx.db
       .query("products")

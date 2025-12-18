@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
+import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { paginationOptsValidator } from "convex/server";
 import type { Doc } from "./_generated/dataModel";
 
@@ -23,6 +24,22 @@ const productValidator = v.object({
   metaTitle: v.optional(v.string()),
   metaDescription: v.optional(v.string()),
 });
+
+async function requireAdmin(ctx: QueryCtx | MutationCtx) {
+  const identity = await ctx.auth.getUserIdentity();
+  if (!identity) {
+    throw new Error("Unauthorized");
+  }
+
+  const user = await ctx.db
+    .query("users")
+    .withIndex("by_clerkId", (q) => q.eq("clerkId", identity.subject))
+    .unique();
+
+  if (!user || user.role !== "admin") {
+    throw new Error("Admin access required");
+  }
+}
 
 // List featured products
 export const listFeatured = query({
@@ -221,6 +238,35 @@ export const getById = query({
   handler: async (ctx, args) => {
     const product = await ctx.db.get(args.id);
     return product;
+  },
+});
+
+export const listAllAdmin = query({
+  args: { limit: v.optional(v.number()) },
+  returns: v.array(productValidator),
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx);
+    const limit = Math.min(args.limit ?? 100, 500);
+    const products = await ctx.db.query("products").order("desc").take(limit);
+    return products;
+  },
+});
+
+export const generateUploadUrl = mutation({
+  args: {},
+  returns: v.string(),
+  handler: async (ctx) => {
+    await requireAdmin(ctx);
+    return await ctx.storage.generateUploadUrl();
+  },
+});
+
+export const getUrlForStorageId = mutation({
+  args: { storageId: v.id("_storage") },
+  returns: v.union(v.string(), v.null()),
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx);
+    return await ctx.storage.getUrl(args.storageId);
   },
 });
 
@@ -461,6 +507,15 @@ export const remove = mutation({
 
     if (!user || user.role !== "admin") {
       throw new Error("Admin access required");
+    }
+
+    const cartItems = await ctx.db
+      .query("cartItems")
+      .withIndex("by_productId", (q) => q.eq("productId", args.id))
+      .collect();
+
+    for (const item of cartItems) {
+      await ctx.db.delete(item._id);
     }
 
     await ctx.db.delete(args.id);

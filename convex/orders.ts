@@ -19,6 +19,11 @@ const paymentStatusValidator = v.union(
   v.literal("refunded")
 );
 
+const paymentMethodValidator = v.union(
+  v.literal("bank_transfer"),
+  v.literal("cash_on_delivery")
+);
+
 const shippingAddressValidator = v.object({
   recipientName: v.string(),
   street: v.string(),
@@ -52,8 +57,10 @@ const orderValidator = v.object({
   shippingAddress: shippingAddressValidator,
   isGift: v.boolean(),
   giftMessage: v.optional(v.string()),
+  paymentMethod: paymentMethodValidator,
   paymentIntentId: v.optional(v.string()),
   paymentStatus: paymentStatusValidator,
+  bankTransferRef: v.optional(v.string()),
   trackingNumber: v.optional(v.string()),
   shippedAt: v.optional(v.number()),
   deliveredAt: v.optional(v.number()),
@@ -166,6 +173,7 @@ export const createFromCart = mutation({
     shippingAddress: shippingAddressValidator,
     isGift: v.boolean(),
     giftMessage: v.optional(v.string()),
+    paymentMethod: paymentMethodValidator,
   },
   returns: v.id("orders"),
   handler: async (ctx, args) => {
@@ -248,7 +256,8 @@ export const createFromCart = mutation({
       shippingAddress: args.shippingAddress,
       isGift: args.isGift,
       giftMessage: args.giftMessage,
-      paymentStatus: "pending",
+      paymentMethod: args.paymentMethod,
+      paymentStatus: args.paymentMethod === "cash_on_delivery" ? "pending" : "pending",
     });
 
     await ctx.db.patch(orderId, {
@@ -441,5 +450,138 @@ export const cancel = mutation({
 
     await ctx.db.patch(args.orderId, { status: "cancelled" });
     return null;
+  },
+});
+
+// Get all orders grouped by status for Kanban view (admin only)
+export const listAllGrouped = query({
+  args: {},
+  returns: v.object({
+    pending: v.array(orderValidator),
+    confirmed: v.array(orderValidator),
+    processing: v.array(orderValidator),
+    shipped: v.array(orderValidator),
+    delivered: v.array(orderValidator),
+    cancelled: v.array(orderValidator),
+  }),
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      return { pending: [], confirmed: [], processing: [], shipped: [], delivered: [], cancelled: [] };
+    }
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerkId", (q) => q.eq("clerkId", identity.subject))
+      .unique();
+
+    if (!user || user.role !== "admin") {
+      return { pending: [], confirmed: [], processing: [], shipped: [], delivered: [], cancelled: [] };
+    }
+
+    const allOrders = await ctx.db.query("orders").order("desc").collect();
+
+    const grouped = {
+      pending: [] as typeof allOrders,
+      confirmed: [] as typeof allOrders,
+      processing: [] as typeof allOrders,
+      shipped: [] as typeof allOrders,
+      delivered: [] as typeof allOrders,
+      cancelled: [] as typeof allOrders,
+    };
+
+    for (const order of allOrders) {
+      grouped[order.status].push(order);
+    }
+
+    return grouped;
+  },
+});
+
+// Admin: Mark payment as received (for bank transfer orders)
+export const markPaymentReceived = mutation({
+  args: {
+    orderId: v.id("orders"),
+    bankTransferRef: v.optional(v.string()),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Unauthorized");
+    }
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerkId", (q) => q.eq("clerkId", identity.subject))
+      .unique();
+
+    if (!user || user.role !== "admin") {
+      throw new Error("Admin access required");
+    }
+
+    const order = await ctx.db.get(args.orderId);
+    if (!order) {
+      throw new Error("Order not found");
+    }
+
+    const updates: Record<string, unknown> = {
+      paymentStatus: "paid",
+      status: order.status === "pending" ? "confirmed" : order.status,
+    };
+
+    if (args.bankTransferRef) {
+      updates.bankTransferRef = args.bankTransferRef;
+    }
+
+    await ctx.db.patch(args.orderId, updates);
+    return null;
+  },
+});
+
+// Get order counts by status for dashboard
+export const getStatusCounts = query({
+  args: {},
+  returns: v.object({
+    pending: v.number(),
+    confirmed: v.number(),
+    processing: v.number(),
+    shipped: v.number(),
+    delivered: v.number(),
+    cancelled: v.number(),
+    total: v.number(),
+  }),
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      return { pending: 0, confirmed: 0, processing: 0, shipped: 0, delivered: 0, cancelled: 0, total: 0 };
+    }
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerkId", (q) => q.eq("clerkId", identity.subject))
+      .unique();
+
+    if (!user || user.role !== "admin") {
+      return { pending: 0, confirmed: 0, processing: 0, shipped: 0, delivered: 0, cancelled: 0, total: 0 };
+    }
+
+    const allOrders = await ctx.db.query("orders").collect();
+
+    const counts = {
+      pending: 0,
+      confirmed: 0,
+      processing: 0,
+      shipped: 0,
+      delivered: 0,
+      cancelled: 0,
+      total: allOrders.length,
+    };
+
+    for (const order of allOrders) {
+      counts[order.status]++;
+    }
+
+    return counts;
   },
 });

@@ -1,4 +1,5 @@
 import { cache } from "react"
+import { notFound } from "next/navigation"
 import { ConvexHttpClient } from "convex/browser"
 import { api } from "@/convex/_generated/api"
 import { ProductCard } from "@/components/store/ProductCard"
@@ -32,9 +33,15 @@ const getCategoryPageData = cache(async (slug: string) => {
 export default async function CategoryPage({
   params,
 }: {
-  params: { slug: string }
+  params: { slug: string } | Promise<{ slug: string }>
 }) {
-  const { slug } = params
+  const resolvedParams = await params
+  const slug = resolvedParams?.slug
+
+  if (!slug) {
+    notFound()
+  }
+
   const { category, allCategories, products } = await getCategoryPageData(slug)
 
   if (category === null) {
