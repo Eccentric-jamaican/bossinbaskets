@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { useClerk, useUser } from "@clerk/nextjs"
 import { useMutation, useQuery } from "convex/react"
-import { Minus, Plus, ShoppingCart, Trash2 } from "lucide-react"
+import { Menu, Minus, Plus, ShoppingCart, Trash2 } from "lucide-react"
 
 import { api } from "@/convex/_generated/api"
 import { Button } from "@/components/ui/button"
@@ -44,15 +44,17 @@ export default function Nav() {
     <header className="w-full bg-[#f7f4ee]">
       <div className="mx-auto w-full max-w-6xl px-4 md:px-8">
         <div className="flex flex-col gap-3 py-3">
-          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 rounded-2xl bg-white px-3 py-2 md:px-4">
-            <div className="flex items-center justify-start gap-2">
+          <div className="flex items-center justify-between gap-2 rounded-2xl bg-white px-3 py-2 md:px-4">
+            <div className="flex items-center gap-2">
               <Sheet>
                 <SheetTrigger asChild>
                   <Button
                     variant="ghost"
-                    className="h-12 min-h-[44px] px-3 text-body font-semibold text-[#002684] hover:text-[#002684]/80"
+                    size="icon"
+                    className="h-10 w-10 min-h-[40px] min-w-[40px] lg:hidden text-[#002684] hover:text-[#002684]/80"
+                    aria-label="Open menu"
                   >
-                    Menu
+                    <Menu className="h-5 w-5" />
                   </Button>
                 </SheetTrigger>
                 <SheetContent side="left" className="p-0">
@@ -61,10 +63,10 @@ export default function Nav() {
                   </SheetHeader>
                   <div className="flex flex-col gap-3 p-4">
                     <Button asChild variant="ghost" className="h-12 min-h-[44px] justify-start text-body text-[#002684] hover:text-[#002684]/80">
-                      <Link href="#">Blue Apron+</Link>
+                      <Link href="/">Home</Link>
                     </Button>
                     <Button asChild variant="ghost" className="h-12 min-h-[44px] justify-start text-body text-[#002684] hover:text-[#002684]/80">
-                      <Link href="#">Autoship &amp; Save</Link>
+                      <Link href="/store">Shop</Link>
                     </Button>
 
                     <div className="h-px w-full bg-border" />
@@ -90,10 +92,6 @@ export default function Nav() {
                       </Button>
                     )}
 
-                    <Button asChild className="h-12 min-h-[44px] rounded-full bg-[#1d4ed8] px-6 text-white hover:bg-[#1d4ed8]/90">
-                      <Link href="#">Shop now</Link>
-                    </Button>
-
                     {isAdmin && (
                       <>
                         <div className="h-px w-full bg-border" />
@@ -106,26 +104,20 @@ export default function Nav() {
                 </SheetContent>
               </Sheet>
 
-              <nav className="hidden lg:flex items-center gap-1">
-                <Button asChild variant="ghost" className="h-12 min-h-[44px] px-3 text-body font-semibold text-[#002684] hover:bg-transparent hover:text-[#002684]/80">
-                  <Link href="#">Blue Apron+</Link>
-                </Button>
-                <Button asChild variant="ghost" className="h-12 min-h-[44px] px-3 text-body font-semibold text-[#002684] hover:bg-transparent hover:text-[#002684]/80">
-                  <Link href="#">Autoship &amp; Save</Link>
-                </Button>
-                {isAdmin && (
+              <Link href="/" className="text-h3 font-bold leading-tight text-[#002684]">
+                BossinBaskets
+              </Link>
+
+              {isAdmin && (
+                <nav className="hidden lg:flex items-center gap-1 ml-4">
                   <Button asChild variant="ghost" className="h-12 min-h-[44px] px-3 text-body font-semibold text-[#002684] hover:bg-transparent hover:text-[#002684]/80">
                     <Link href="/admin">Admin</Link>
                   </Button>
-                )}
-              </nav>
+                </nav>
+              )}
             </div>
 
-            <Link href="/" className="justify-self-center text-h3 font-bold leading-tight text-[#002684]">
-              BossinBaskets
-            </Link>
-
-            <div className="flex items-center justify-end gap-2">
+            <div className="flex items-center gap-1 lg:gap-2">
               <div className="hidden lg:flex flex-col gap-2 lg:flex-row lg:items-center">
                 {!isSignedIn && (
                   <>
@@ -153,14 +145,14 @@ export default function Nav() {
                   <Button
                     type="button"
                     variant="outline"
-                    className="relative h-12 min-h-[44px] rounded-full px-4 text-[#002684]"
+                    size="icon"
+                    className="relative h-10 w-10 min-h-[40px] min-w-[40px] lg:h-12 lg:w-auto lg:min-h-[44px] lg:px-4 rounded-full text-[#002684]"
+                    aria-label="Open cart"
                   >
-                    <span className="inline-flex items-center gap-2">
-                      <ShoppingCart className="h-5 w-5" />
-                      <span className="text-body font-semibold">Cart</span>
-                    </span>
+                    <ShoppingCart className="h-5 w-5" />
+                    <span className="hidden lg:inline text-body font-semibold ml-2">Cart</span>
                     {count > 0 ? (
-                      <span className="absolute -top-2 -right-1 inline-flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-semibold leading-none text-[#002684]">
+                      <span className="absolute -top-1 -right-1 lg:-top-2 inline-flex h-5 w-5 lg:h-6 lg:w-6 items-center justify-center rounded-full bg-[#1d4ed8] text-xs font-semibold leading-none text-white">
                         {count}
                       </span>
                     ) : null}
@@ -323,8 +315,8 @@ export default function Nav() {
                 </SheetContent>
               </Sheet>
 
-              <Button asChild className="h-12 min-h-[44px] rounded-full bg-[#1d4ed8] px-6 text-white hover:bg-[#1d4ed8]/90">
-                <Link href="#">Shop now</Link>
+              <Button asChild className="h-10 min-h-[40px] lg:h-12 lg:min-h-[44px] rounded-full bg-[#1d4ed8] px-4 lg:px-6 text-sm lg:text-body text-white hover:bg-[#1d4ed8]/90">
+                <Link href="/store">Shop now</Link>
               </Button>
             </div>
           </div>
