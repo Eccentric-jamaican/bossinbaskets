@@ -46,15 +46,15 @@ export default function Testimonials() {
   ]
 
   return (
-    <section className="w-full bg-[#f7f4ee] py-16 md:py-24 overflow-hidden">
+    <section className="w-full bg-white py-16 md:py-24">
       <div className="mx-auto w-full max-w-6xl px-4 md:px-8">
         
         {/* Section Header */}
         <div className="flex flex-col items-center justify-center text-center mb-12 md:mb-16">
-          <h2 className="text-3xl md:text-5xl font-serif font-bold text-[#002684] mb-4">
+          <h2 className="text-h2 font-serif font-bold text-[#002684] mb-4">
             From our family to yours
           </h2>
-          <p className="text-lg md:text-xl text-[#002684]/70 max-w-2xl">
+          <p className="text-body text-[#002684]/70 max-w-2xl">
             Join thousands of happy gifters spreading joy one basket at a time.
           </p>
         </div>
@@ -86,15 +86,15 @@ export default function Testimonials() {
                           />
                         ))}
                       </div>
-                      <blockquote className="text-lg text-[#002684]/80 leading-relaxed mb-6 font-medium">
+                      <blockquote className="text-body text-[#002684]/80 leading-relaxed mb-6 font-medium">
                         "{testimonial.quote}"
                       </blockquote>
                     </div>
                     <div>
-                      <div className="font-serif font-bold text-[#002684] text-lg">
+                      <div className="font-serif font-bold text-[#002684] text-body">
                         {testimonial.author}
                       </div>
-                      <div className="text-sm text-[#002684]/50 font-medium uppercase tracking-wide">
+                      <div className="text-sm-fluid text-[#002684]/50 font-medium uppercase tracking-wide">
                         {testimonial.role}
                       </div>
                     </div>
@@ -103,9 +103,9 @@ export default function Testimonials() {
               </CarouselItem>
             ))}
           </CarouselContent>
-          <div className="hidden md:block">
-            <CarouselPrevious className="left-[-3rem] border-[#002684]/20 text-[#002684] hover:bg-[#002684] hover:text-white" />
-            <CarouselNext className="right-[-3rem] border-[#002684]/20 text-[#002684] hover:bg-[#002684] hover:text-white" />
+          <div className="flex justify-center gap-4 mt-8">
+            <CarouselPrevious className="static translate-y-0 border-[#002684]/20 text-[#002684] hover:bg-[#002684] hover:text-white" />
+            <CarouselNext className="static translate-y-0 border-[#002684]/20 text-[#002684] hover:bg-[#002684] hover:text-white" />
           </div>
         </Carousel>
 

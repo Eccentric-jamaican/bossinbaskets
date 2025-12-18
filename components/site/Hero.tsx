@@ -9,12 +9,16 @@ export default function Hero() {
     <section className="w-full bg-[#f7f4ee]">
       <div className="mx-auto w-full max-w-6xl px-4 md:px-8">
         <div className="flex flex-col items-center gap-8 py-10 md:py-16">
-          <h1 className="text-h1 font-serif text-5xl md:text-6xl text-center text-[#1a1a1a]">
+          <h1 className="text-h1 font-serif font-bold text-center text-[#002684]">
             Meet the <span className="italic">new</span> BossinBaskets
           </h1>
 
-          <Button asChild className="h-12 min-h-[44px] rounded-full bg-[#1d4ed8] px-10 text-lg font-semibold text-white hover:bg-[#1d4ed8]/90">
-            <Link href="#">Shop now</Link>
+          <p className="text-body text-center text-[#002684]/70 max-w-xl">
+            Curated gift baskets for every occasion—handpicked with love, delivered with care.
+          </p>
+
+          <Button asChild className="h-12 min-h-[44px] rounded-full bg-[#1d4ed8] px-10 text-body font-semibold text-white hover:bg-[#1d4ed8]/90">
+            <Link href="/store">Shop gift baskets</Link>
           </Button>
 
           <div className="w-full overflow-hidden rounded-2xl bg-black/5 shadow-sm">

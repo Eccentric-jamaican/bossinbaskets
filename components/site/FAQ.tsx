@@ -37,10 +37,10 @@ export default function FAQ() {
         
         {/* Section Header */}
         <div className="flex flex-col items-center justify-center text-center mb-10 md:mb-14">
-          <h2 className="text-3xl md:text-5xl font-serif font-bold text-[#002684] mb-4">
+          <h2 className="text-h2 font-serif font-bold text-[#002684] mb-4">
             Common questions
           </h2>
-          <p className="text-lg md:text-xl text-[#002684]/70">
+          <p className="text-body text-[#002684]/70">
             Everything you need to know about your order.
           </p>
         </div>
@@ -49,10 +49,10 @@ export default function FAQ() {
         <Accordion type="single" collapsible className="w-full">
           {faqs.map((faq, index) => (
             <AccordionItem key={index} value={`item-${index}`} className="border-[#002684]/10">
-              <AccordionTrigger className="text-lg font-medium text-[#002684] hover:text-[#002684]/80 text-left">
+              <AccordionTrigger className="text-body font-medium text-[#002684] hover:text-[#002684]/80 text-left">
                 {faq.question}
               </AccordionTrigger>
-              <AccordionContent className="text-base text-[#002684]/70 leading-relaxed">
+              <AccordionContent className="text-body text-[#002684]/70 leading-relaxed">
                 {faq.answer}
               </AccordionContent>
             </AccordionItem>

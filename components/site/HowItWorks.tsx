@@ -27,10 +27,10 @@ export default function HowItWorks() {
         
         {/* Section Header */}
         <div className="flex flex-col items-center justify-center text-center mb-12 md:mb-16">
-          <h2 className="text-3xl md:text-5xl font-serif font-bold text-[#002684] mb-4">
+          <h2 className="text-h2 font-serif font-bold text-[#002684] mb-4">
             Gifting made simple
           </h2>
-          <p className="text-lg md:text-xl text-[#002684]/70 max-w-2xl">
+          <p className="text-body text-[#002684]/70 max-w-2xl">
             We handle the details so you can enjoy the moment.
           </p>
         </div>
@@ -42,10 +42,10 @@ export default function HowItWorks() {
               <div className="mb-6 inline-flex h-20 w-20 items-center justify-center rounded-full bg-[#1d4ed8]/10 text-[#1d4ed8] transition-all group-hover:scale-110 group-hover:bg-[#1d4ed8] group-hover:text-white">
                 <step.icon className="h-10 w-10" />
               </div>
-              <h3 className="text-xl md:text-2xl font-serif font-bold text-[#002684] mb-3">
+              <h3 className="text-h3 font-serif font-bold text-[#002684] mb-3">
                 {step.title}
               </h3>
-              <p className="text-base md:text-lg text-[#002684]/70 leading-relaxed">
+              <p className="text-body text-[#002684]/70 leading-relaxed">
                 {step.description}
               </p>
             </div>

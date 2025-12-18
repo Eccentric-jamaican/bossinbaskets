@@ -14,6 +14,16 @@ export default function SeasonSection() {
     const container = containerRef.current
     const text = textRef.current
 
+    // Respect reduced motion preference
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    if (prefersReducedMotion) {
+      if (text) {
+        text.style.opacity = "1"
+        text.style.transform = "translateY(0)"
+      }
+      return
+    }
+
     const anim =
       container && text
         ? gsap.fromTo(
@@ -23,21 +33,19 @@ export default function SeasonSection() {
               opacity: 0,
             },
             {
-              y: -50, // Move up as we scroll
+              y: -50,
               opacity: 1,
               ease: "none",
               scrollTrigger: {
                 trigger: container,
-                start: "top bottom", // Start when container top hits bottom of viewport
-                end: "center center", // End when container center hits center of viewport
-                scrub: 1, // Tie animation to scroll bar with 1s lag for smoothness
+                start: "top bottom",
+                end: "center center",
+                scrub: 1,
               },
             }
           )
         : null
 
-    // Parallax text reveal
-    // The text will move slower than the scroll and fade in
     return () => {
       anim?.scrollTrigger?.kill()
       anim?.kill()
@@ -47,7 +55,7 @@ export default function SeasonSection() {
   return (
     <section 
       ref={containerRef} 
-      className="relative w-full overflow-hidden bg-[#002684] py-32 md:py-48"
+      className="relative w-full overflow-hidden bg-[#002684] py-20 md:py-32"
     >
       {/* Decorative background elements - CSS Pattern instead of image */}
       <div 
@@ -59,10 +67,10 @@ export default function SeasonSection() {
       ></div>
       
       {/* Centered Text */}
-      <div className="container relative mx-auto px-4 text-center">
+      <div className="relative mx-auto w-full max-w-6xl px-4 md:px-8 text-center">
         <h2 
           ref={textRef}
-          className="font-serif text-5xl font-bold leading-tight text-white md:text-7xl lg:text-8xl"
+          className="text-h1 font-serif font-bold leading-tight text-white"
         >
           'Tis the season <br className="hidden md:block" />
           <span className="italic text-[#fbbf24]">for giving</span>
