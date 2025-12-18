@@ -294,8 +294,9 @@ When a user signs in via Clerk, they must also exist in the Convex `users` table
    - Computes a snapshot string of sync fields (`clerkId|email|name`)
    - Only calls `api.users.upsert` when the snapshot differs from the last successful sync
    - Uses `isSyncingRef` to prevent concurrent duplicate calls (Strict Mode safe)
+   - Uses `pendingSnapshotRef` to queue changes that occur during an in-progress sync
+   - Loops after each sync to check if newer data needs syncing
    - Updates `lastSyncedRef` only after a successful upsert
-   - Resets `isSyncingRef` in a `finally` block for deterministic cleanup
    - Renders nothing (logic-only component)
 
 2. **`components/ConvexClientProvider.tsx`** — Includes `<UserSync />` inside the provider so it runs globally on every page.
@@ -307,13 +308,19 @@ User signs in via Clerk
        ↓
 UserSync computes snapshot: "clerkId|email|name"
        ↓
-If snapshot !== lastSyncedRef and not currently syncing:
+If snapshot !== lastSyncedRef:
+  - If syncing: store snapshot in pendingSnapshotRef, return
+  - If not syncing: start sync loop
        ↓
-Set isSyncingRef = true, call api.users.upsert
-       ↓
-On success: set lastSyncedRef = snapshot
-On error: log error
-Finally: set isSyncingRef = false
+Sync loop:
+  1. Set isSyncingRef = true
+  2. Get current snapshot from getSnapshot()
+  3. If snapshot === lastSyncedRef, break
+  4. Call api.users.upsert
+  5. On success: set lastSyncedRef = snapshot
+  6. On error: log and break
+  7. If pendingSnapshotRef differs, loop again
+  8. Set isSyncingRef = false
        ↓
 User record created/updated in Convex users table
        ↓
@@ -331,8 +338,10 @@ cart.add, orders.createFromCart, etc. now work
 
 - **Snapshot-based change detection:** Only syncs when user data actually changes
 - **`isSyncingRef` guard:** Prevents concurrent duplicate calls in React Strict Mode
+- **`pendingSnapshotRef`:** Queues changes that occur during an in-progress sync
+- **Sync loop:** Re-syncs if user data changed while a sync was in progress
 - **`lastSyncedRef` updated after success:** Ensures failed syncs can be retried
-- **`finally` block:** Always resets `isSyncingRef` for deterministic cleanup
+- **Break on error:** Prevents infinite loops on persistent failures
 
 ---
 
