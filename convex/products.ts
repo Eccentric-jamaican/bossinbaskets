@@ -49,6 +49,8 @@ export const listByCategory = query({
     page: v.array(productValidator),
     isDone: v.boolean(),
     continueCursor: v.string(),
+    pageStatus: v.optional(v.union(v.literal("SplitRecommended"), v.literal("SplitRequired"), v.null())),
+    splitCursor: v.optional(v.union(v.string(), v.null())),
   }),
   handler: async (ctx, args) => {
     const result = await ctx.db
@@ -68,6 +70,8 @@ export const listActive = query({
     page: v.array(productValidator),
     isDone: v.boolean(),
     continueCursor: v.string(),
+    pageStatus: v.optional(v.union(v.literal("SplitRecommended"), v.literal("SplitRequired"), v.null())),
+    splitCursor: v.optional(v.union(v.string(), v.null())),
   }),
   handler: async (ctx, args) => {
     const result = await ctx.db
@@ -76,6 +80,124 @@ export const listActive = query({
       .order("desc")
       .paginate(args.paginationOpts);
     return result;
+  },
+});
+
+export const getActivePriceBounds = query({
+  args: {},
+  returns: v.union(
+    v.object({
+      minPrice: v.number(),
+      maxPrice: v.number(),
+    }),
+    v.null()
+  ),
+  handler: async (ctx) => {
+    const minProduct = await ctx.db
+      .query("products")
+      .withIndex("by_isActive_and_price", (q) => q.eq("isActive", true))
+      .first();
+
+    if (!minProduct) {
+      return null;
+    }
+
+    const maxProduct = await ctx.db
+      .query("products")
+      .withIndex("by_isActive_and_price", (q) => q.eq("isActive", true))
+      .order("desc")
+      .first();
+
+    return {
+      minPrice: minProduct.price,
+      maxPrice: maxProduct?.price ?? minProduct.price,
+    };
+  },
+});
+
+export const listActiveFiltered = query({
+  args: {
+    paginationOpts: paginationOptsValidator,
+    filters: v.optional(
+      v.object({
+        sort: v.optional(
+          v.union(v.literal("newest"), v.literal("priceAsc"), v.literal("priceDesc"))
+        ),
+        featuredOnly: v.optional(v.boolean()),
+        inStockOnly: v.optional(v.boolean()),
+        minPrice: v.optional(v.union(v.number(), v.null())),
+        maxPrice: v.optional(v.union(v.number(), v.null())),
+      })
+    ),
+  },
+  returns: v.object({
+    page: v.array(productValidator),
+    isDone: v.boolean(),
+    continueCursor: v.string(),
+    pageStatus: v.optional(v.union(v.literal("SplitRecommended"), v.literal("SplitRequired"), v.null())),
+    splitCursor: v.optional(v.union(v.string(), v.null())),
+  }),
+  handler: async (ctx, args) => {
+    const sort = args.filters?.sort ?? "newest";
+    const featuredOnly = args.filters?.featuredOnly ?? false;
+    const inStockOnly = args.filters?.inStockOnly ?? false;
+    const minPrice = args.filters?.minPrice ?? null;
+    const maxPrice = args.filters?.maxPrice ?? null;
+
+    if (sort === "priceAsc" || sort === "priceDesc") {
+      let query = ctx.db
+        .query("products")
+        .withIndex("by_isActive_and_price", (q) => {
+          if (minPrice !== null && maxPrice !== null) {
+            return q
+              .eq("isActive", true)
+              .gte("price", minPrice)
+              .lte("price", maxPrice);
+          }
+
+          if (minPrice !== null) {
+            return q.eq("isActive", true).gte("price", minPrice);
+          }
+
+          if (maxPrice !== null) {
+            return q.eq("isActive", true).lte("price", maxPrice);
+          }
+
+          return q.eq("isActive", true);
+        })
+        .order(sort === "priceDesc" ? "desc" : "asc");
+
+      if (featuredOnly || inStockOnly) {
+        query = query.filter((q) => {
+          const clauses = [];
+          if (featuredOnly) clauses.push(q.eq(q.field("isFeatured"), true));
+          if (inStockOnly) clauses.push(q.gt(q.field("inventory"), 0));
+          return q.and(...clauses);
+        });
+      }
+
+      return await query.paginate(args.paginationOpts);
+    }
+
+    let query = ctx.db
+      .query("products")
+      .withIndex("by_isActive", (q) => q.eq("isActive", true))
+      .order("desc");
+
+    if (featuredOnly || inStockOnly || minPrice !== null || maxPrice !== null) {
+      query = query.filter((q) => {
+        const clauses = [];
+
+        if (featuredOnly) clauses.push(q.eq(q.field("isFeatured"), true));
+        if (inStockOnly) clauses.push(q.gt(q.field("inventory"), 0));
+        if (minPrice !== null) clauses.push(q.gte(q.field("price"), minPrice));
+        if (maxPrice !== null) clauses.push(q.lte(q.field("price"), maxPrice));
+
+        return q.and(...clauses);
+      });
+    }
+
+    return await query.paginate(args.paginationOpts);
   },
 });
 
