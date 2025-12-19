@@ -9,6 +9,23 @@ import type { Doc } from "@/convex/_generated/dataModel"
 import { ProductCard } from "@/components/store/ProductCard"
 import { Skeleton } from "@/components/ui/skeleton"
 
+function BulkPricingNote() {
+  return (
+    <div className="mt-8 rounded-2xl border bg-accent/40 px-4 py-3 text-center">
+      <p className="text-sm-fluid leading-relaxed text-muted-foreground">
+        Ordering for the whole office?{" "}
+        <Link
+          href="/contact"
+          className="font-medium text-[#1d4ed8] underline underline-offset-4 hover:no-underline"
+        >
+          Contact us
+        </Link>{" "}
+        for bulk pricing on orders of 10 or more.
+      </p>
+    </div>
+  )
+}
+
 export default function BossPicks() {
   const categories = useQuery(api.categories.listActive)
   const allActiveProducts = useQuery(api.products.listAllActive, { limit: 24 })
@@ -34,21 +51,6 @@ export default function BossPicks() {
   const allProducts = useMemo(() => {
     return (allActiveProducts ?? []).slice(0, 4)
   }, [allActiveProducts])
-
-  const BulkPricingNote = () => (
-    <div className="mt-8 rounded-2xl border bg-accent/40 px-4 py-3 text-center">
-      <p className="text-sm-fluid leading-relaxed text-muted-foreground">
-        Ordering for the whole office?{" "}
-        <Link
-          href="/contact"
-          className="font-medium text-[#1d4ed8] underline underline-offset-4 hover:no-underline"
-        >
-          Contact us
-        </Link>{" "}
-        for bulk pricing on orders of 10 or more.
-      </p>
-    </div>
-  )
 
   return (
     <section className="w-full bg-white py-16 md:py-24">

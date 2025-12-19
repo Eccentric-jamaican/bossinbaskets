@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 
 const rotatingWords = [
@@ -12,10 +12,28 @@ const rotatingWords = [
   "VIPs"         
 ];
 
+const placeholderPoster =
+  "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw=="
+
 const videos = [
-  { src: "/hero/Image_To_Video_Generation.mp4", objectPosition: "50% 20%" },
-  { src: "/hero/Image_To_Video_Generation (1).mp4", objectPosition: "50% 20%" },
-  { src: "/hero/Insurance_Agent_Gifts_Client_Basket.mp4", objectPosition: "50% 35%" },
+  {
+    src: "/hero/Image_To_Video_Generation.mp4",
+    objectPosition: "50% 20%",
+    label: "Gourmet basket being prepared",
+    captions: "/hero/captions/image-to-video-generation.vtt",
+  },
+  {
+    src: "/hero/Image_To_Video_Generation (1).mp4",
+    objectPosition: "50% 20%",
+    label: "Hands tying a ribbon on a gift basket",
+    captions: "/hero/captions/image-to-video-generation-1.vtt",
+  },
+  {
+    src: "/hero/Insurance_Agent_Gifts_Client_Basket.mp4",
+    objectPosition: "50% 35%",
+    label: "Recipient receiving a curated gift basket",
+    captions: "/hero/captions/insurance-agent-gifts-client-basket.vtt",
+  },
 ];
 
 export default function Hero() {
@@ -27,10 +45,12 @@ export default function Hero() {
   const [wordFlipping, setWordFlipping] = useState(false);
   const [isHeroInView, setIsHeroInView] = useState(false);
 
+  const prefersReducedMotion = useMemo(() => {
+    if (typeof window === "undefined") return false;
+    return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  }, []);
+
   useEffect(() => {
-    const prefersReducedMotion = window.matchMedia(
-      "(prefers-reduced-motion: reduce)",
-    ).matches;
     if (prefersReducedMotion) return;
 
     const activeVideo = videoRefs.current[activeIndex];
@@ -49,12 +69,9 @@ export default function Hero() {
     return () => {
       activeVideo?.removeEventListener("ended", handleEnded);
     };
-  }, [activeIndex]);
+  }, [activeIndex, prefersReducedMotion]);
 
   useEffect(() => {
-    const prefersReducedMotion = window.matchMedia(
-      "(prefers-reduced-motion: reduce)",
-    ).matches;
     if (prefersReducedMotion) return;
 
     const el = sectionRef.current;
@@ -73,12 +90,9 @@ export default function Hero() {
     return () => {
       obs.disconnect();
     };
-  }, []);
+  }, [prefersReducedMotion]);
 
   useEffect(() => {
-    const prefersReducedMotion = window.matchMedia(
-      "(prefers-reduced-motion: reduce)",
-    ).matches;
     if (prefersReducedMotion) return;
     if (!isHeroInView) return;
 
@@ -107,6 +121,7 @@ export default function Hero() {
             Show your{" "}
             <span
               className="inline-block italic text-[#fbbf24] transition-[transform,opacity] duration-300 will-change-transform"
+              aria-hidden="true"
               style={{
                 transform: wordFlipping ? "rotateX(90deg)" : "rotateX(0deg)",
                 opacity: wordFlipping ? 0 : 1,
@@ -116,6 +131,14 @@ export default function Hero() {
               {rotatingWords[wordIndex]}
             </span>{" "}
             how much you appreciate them
+            <span
+              className="sr-only"
+              aria-live="polite"
+              aria-atomic="true"
+              role="status"
+            >
+              {rotatingWords[wordIndex]}
+            </span>
           </h1>
 
           <p className="text-body text-center text-[#002684]/70 max-w-xl">
@@ -126,24 +149,39 @@ export default function Hero() {
             <Link href="/store">Shop gift baskets</Link>
           </Button>
 
-          <div className="w-full overflow-hidden rounded-2xl bg-black/5 shadow-sm">
+          <div className="w-full overflow-hidden rounded-2xl bg-black/5 shadow-sm" aria-label="Featured gift basket videos">
             <div className="relative aspect-[16/9] w-full bg-neutral-900">
-              {videos.map((video, index) => (
-                <video
-                  key={video.src}
-                  ref={(el) => {
-                    videoRefs.current[index] = el;
-                  }}
-                  src={video.src}
-                  muted
-                  playsInline
-                  preload={index === 0 ? "auto" : "metadata"}
-                  style={{ objectPosition: video.objectPosition }}
-                  className={`pointer-events-none absolute inset-0 h-full w-full select-none object-cover transition-opacity duration-700 ease-in-out ${
-                    index === activeIndex ? "opacity-100" : "opacity-0"
-                  }`}
-                />
-              ))}
+              {videos.map((video, index) => {
+                const isActive = index === activeIndex
+                return (
+                  <video
+                    key={video.src}
+                    ref={(el) => {
+                      videoRefs.current[index] = el
+                    }}
+                    src={video.src}
+                    aria-label={video.label}
+                    aria-roledescription="video"
+                    aria-hidden={!isActive}
+                    role="group"
+                    muted
+                    playsInline
+                    preload={isActive ? "auto" : "none"}
+                    poster={isActive ? undefined : placeholderPoster}
+                    style={{ objectPosition: video.objectPosition }}
+                    className={`pointer-events-none absolute inset-0 h-full w-full select-none object-cover transition-opacity duration-700 ease-in-out ${
+                      isActive ? "opacity-100" : "opacity-0"
+                    }`}
+                  >
+                    <track
+                      kind="captions"
+                      src={video.captions}
+                      label={`${video.label} captions`}
+                      default={isActive}
+                    />
+                  </video>
+                )
+              })}
             </div>
           </div>
         </div>
