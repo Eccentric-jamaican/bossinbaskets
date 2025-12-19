@@ -9,7 +9,7 @@ import Newsletter from "@/components/site/Newsletter";
 
 export default function Home() {
   return (
-    <div className="flex min-h-screen flex-col font-sans">
+    <div className="flex min-h-screen flex-col overflow-x-hidden font-sans">
       <Nav />
       <main className="flex-1">
         <Hero />
