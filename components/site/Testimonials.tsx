@@ -20,27 +20,27 @@ interface Testimonial {
 export default function Testimonials() {
   const testimonials: Testimonial[] = [
     {
-      quote: "I sent a basket to my mom for her birthday and she was in tears. The presentation was absolutely stunning and the products were delicious.",
-      author: "Sarah Mitchell",
+      quote: "I needed 15 baskets for my top policyholders before the Christmas rush. BossinBaskets handled everything—from the handwritten cards to the delivery. One client called me the same afternoon to say it was the nicest gift he'd received in years. Worth every cent for the peace of mind.",
+      author: "Ricardo M.",
+      role: "Insurance Executive",
+      rating: 5
+    },
+    {
+      quote: "Finding something that actually looks premium for our staff appreciation day is usually a headache. We ordered the 'Signature' tier and the quality was consistent across all 40 baskets. No generic fillers—just good stuff. Our team felt truly appreciated.",
+      author: "Simone V.",
+      role: "HR Operations",
+      rating: 5
+    },
+    {
+      quote: "Sent a basket to my daughter’s principal for Teacher’s Day. The way it was wrapped was so beautiful she didn't even want to open it! You can tell it wasn't just thrown together in a store. Definitely my new go-to for gifting.",
+      author: "Karen T.",
       role: "Verified Buyer",
       rating: 5
     },
     {
-      quote: "Finally a gift basket that doesn't feel generic. You can tell real care went into selecting these items. My team loved the holiday baskets!",
-      author: "James Wilson",
-      role: "Corporate Client",
-      rating: 5
-    },
-    {
-      quote: "Super fast shipping and the handwritten note was such a nice touch. It felt like I packed it myself, but without the stress.",
-      author: "Emily Chen",
-      role: "Verified Buyer",
-      rating: 5
-    },
-    {
-      quote: "The 'Spa Indulgence' basket was a hit with my wife. High quality products and beautiful packaging. Will definitely order again.",
-      author: "Michael Ross",
-      role: "Verified Buyer",
+      quote: "Delivery to New Kingston was so fast, and the local treats inside were a hit. The handwritten note made it feel like I personally picked every item. My client still talks about it months later.",
+      author: "Daneisha P.",
+      role: "Marketing Manager",
       rating: 5
     }
   ]

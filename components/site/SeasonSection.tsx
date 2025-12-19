@@ -66,9 +66,11 @@ export default function SeasonSection() {
           ref={textRef}
           className="text-h1 font-serif font-bold leading-tight text-white"
         >
-          'Tis the season <br className="hidden md:block" />
-          <span className="italic text-[#fbbf24]">for giving</span>
+          Because you have enough on your plate.
         </h2>
+        <p className="mx-auto mt-6 max-w-2xl text-body leading-relaxed text-white/80">
+          We take the stress out of saying "Thank You." Simply choose a basket, and we’ll do the rest.
+        </p>
       </div>
     </section>
   )

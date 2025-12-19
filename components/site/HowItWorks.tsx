@@ -6,18 +6,18 @@ export default function HowItWorks() {
   const steps = [
     {
       icon: Gift,
-      title: "Pick a basket",
-      description: "Browse our curated collection of hand-picked gifts for every occasion—birthdays, holidays, or just because."
+      title: "Select Your Impact.",
+      description: "Browse our collection of hand-picked gifts for every occasion."
     },
     {
       icon: PenLine,
-      title: "Add your message",
+      title: "Personalize",
       description: "Make it personal. We include a beautiful handwritten-style note with every basket, completely free of charge."
     },
     {
       icon: Truck,
-      title: "We deliver fast",
-      description: "Sit back and relax. We pack every basket with care and ship nationwide to ensure it arrives perfectly."
+      title: "We handle the rest",
+      description: "We handle the logistics. Fast, reliable delivery across Jamaica."
     }
   ]
 
@@ -28,10 +28,10 @@ export default function HowItWorks() {
         {/* Section Header */}
         <div className="flex flex-col items-center justify-center text-center mb-12 md:mb-16">
           <h2 className="text-h2 font-serif font-bold text-[#002684] mb-4">
-            Gifting made simple
+            How we handle making you look good at gifting
           </h2>
           <p className="text-body text-[#002684]/70 max-w-2xl">
-            We handle the details so you can enjoy the moment.
+            Browse our collections designed for client retention, employee milestones, and celebrations.
           </p>
         </div>
 
