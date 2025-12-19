@@ -80,6 +80,21 @@ export const listByCategory = query({
   },
 });
 
+// List all active products (simple, no pagination) for homepage sections
+export const listAllActive = query({
+  args: { limit: v.optional(v.number()) },
+  returns: v.array(productValidator),
+  handler: async (ctx, args) => {
+    const limit = args.limit ?? 24;
+    const products = await ctx.db
+      .query("products")
+      .withIndex("by_isActive", (q) => q.eq("isActive", true))
+      .order("desc")
+      .take(limit);
+    return products;
+  },
+});
+
 // List all active products with pagination
 export const listActive = query({
   args: { paginationOpts: paginationOptsValidator },
