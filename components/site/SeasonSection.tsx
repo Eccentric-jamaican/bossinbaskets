@@ -24,19 +24,23 @@ export default function SeasonSection() {
     }
 
     const ctx = gsap.context(() => {
-      gsap.set(text, { y: 100, opacity: 0 })
-      gsap.to(text, {
-        y: -50,
-        opacity: 1,
-        ease: "none",
-        scrollTrigger: {
-          trigger: container,
-          start: "top bottom",
-          end: "center center",
-          scrub: 1,
-          invalidateOnRefresh: true,
+      gsap.fromTo(
+        text,
+        { y: 100, opacity: 0 },
+        {
+          y: -50,
+          opacity: 1,
+          ease: "none",
+          immediateRender: false, // keep visible before trigger to avoid hidden text on mobile
+          scrollTrigger: {
+            trigger: container,
+            start: "top bottom",
+            end: "center center",
+            scrub: 1,
+            invalidateOnRefresh: true,
+          },
         },
-      })
+      )
     }, container)
 
     ScrollTrigger.refresh()
