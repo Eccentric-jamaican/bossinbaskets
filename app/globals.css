@@ -50,6 +50,8 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
 }
 
 .dark {
@@ -73,5 +75,21 @@ body {
   }
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+@layer base {
+  [data-slot="sheet-content"] {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  @supports not (overscroll-behavior: contain) {
+    body {
+      touch-action: pan-x pan-y;
+    }
+
+    [data-slot="sheet-content"] {
+      touch-action: pan-y;
+    }
   }
 }
