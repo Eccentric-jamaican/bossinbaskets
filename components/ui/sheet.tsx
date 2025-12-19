@@ -74,7 +74,7 @@ function SheetContent({
       <SheetOverlay />
       <SheetPrimitive.Content
         data-slot="sheet-content"
-        style={{ WebkitOverflowScrolling: "touch", ...style }}
+        style={style}
         onAnimationStart={handleAnimationStart}
         onAnimationEnd={handleAnimationEnd}
         className={cn(
