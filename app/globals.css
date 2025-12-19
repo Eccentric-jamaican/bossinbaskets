@@ -80,7 +80,6 @@ body {
 
 @layer base {
   [data-slot="sheet-content"] {
-    -webkit-overflow-scrolling: touch;
   }
 
   @supports not (overscroll-behavior: contain) {
