@@ -99,7 +99,9 @@ export default function AdminCategoriesPage() {
     setError(null)
     setSuccess(null)
 
-    if (!name.trim()) {
+    const trimmedName = name.trim()
+
+    if (!trimmedName) {
       setError("Name is required")
       return
     }
@@ -119,18 +121,18 @@ export default function AdminCategoriesPage() {
       if (editingCategory) {
         await updateCategory({
           id: editingCategory.id,
-          name: name.trim(),
+          name: trimmedName,
           slug: parsed.normalizedSlug,
           description: parsed.description,
           imageUrl: parsed.imageUrl,
           isActive,
           sortOrder: parsed.sortOrderNumber,
         })
-        setSuccess(`Updated category: ${editingCategory.name}`)
+        setSuccess(`Updated category: ${trimmedName}`)
         resetForm()
       } else {
         const id = await createCategory({
-          name: name.trim(),
+          name: trimmedName,
           slug: parsed.normalizedSlug,
           description: parsed.description,
           imageUrl: parsed.imageUrl,
@@ -138,7 +140,7 @@ export default function AdminCategoriesPage() {
           sortOrder: parsed.sortOrderNumber,
         })
 
-        setSuccess(`Created category: ${String(id)}`)
+        setSuccess(`Created category: ${trimmedName}`)
         resetForm()
       }
     } catch (err) {
@@ -159,7 +161,11 @@ export default function AdminCategoriesPage() {
     }
   }
 
-  const startEditing = (category: (typeof categories)[number]) => {
+  type CategoryItem = NonNullable<typeof categories>[number]
+
+  const startEditing = (category: CategoryItem) => {
+    setError(null)
+    setSuccess(null)
     setEditingCategory({ id: category._id, name: category.name })
     setName(category.name)
     setSlug(category.slug)

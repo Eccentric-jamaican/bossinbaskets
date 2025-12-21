@@ -6,6 +6,18 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --brand-surface: #f7f4ee;
+  --brand-surface-dark: #111827;
+  --brand-foreground: #1f2a44;
+  --brand-foreground-dark: #f5f5f5;
+  --brand-heading: #002684;
+  --brand-heading-dark: #f8fafc;
+  --brand-muted: #4b5563;
+  --brand-muted-dark: #94a3b8;
+  --brand-primary: #1d4ed8;
+  --brand-success: #0f9d58;
+  --brand-warning: #f59e0b;
+  --brand-error: #dc2626;
   --border: hsl(220 13% 91%);
   --ring: hsl(217.2 91.2% 59.8%);
   --sidebar: hsl(0 0% 98%);
@@ -55,6 +67,15 @@ body {
 .dark {
   --background: #0a0a0a;
   --foreground: #ededed;
+  --brand-surface: #0f172a;
+  --brand-surface-dark: #0f172a;
+  --brand-foreground: #f4f4f5;
+  --brand-foreground-dark: #f4f4f5;
+  --brand-heading: #e0e7ff;
+  --brand-heading-dark: #e0e7ff;
+  --brand-muted: #94a3b8;
+  --brand-muted-dark: #cbd5f5;
+  --brand-primary: #3b82f6;
   --border: hsl(240 3.7% 15.9%);
   --ring: hsl(217.2 91.2% 59.8%);
   --sidebar: hsl(240 5.9% 10%);

@@ -10,10 +10,6 @@ import {
 import { useTheme } from "next-themes"
 import { Toaster as Sonner, type ToasterProps } from "sonner"
 
-const BRAND_BG = "#f7f4ee"
-const BRAND_TEXT = "#002684"
-const BRAND_PRIMARY = "#1d4ed8"
-
 const Toaster = ({ ...props }: ToasterProps) => {
   const { theme = "system" } = useTheme()
 
@@ -27,34 +23,30 @@ const Toaster = ({ ...props }: ToasterProps) => {
       toastOptions={{
         classNames: {
           toast:
-            "rounded-2xl border border-[#002684]/10 bg-[var(--toast-bg)] text-[var(--toast-fg)] shadow-xl shadow-[#002684]/5 font-sans px-5 py-4",
-          title: "text-body font-semibold text-[#002684]",
-          description: "text-sm text-[#002684]/80",
+            "rounded-2xl border border-border bg-[var(--brand-surface)] text-[var(--brand-foreground)] shadow-xl shadow-brand-primary/5 font-sans px-5 py-4 transition-colors dark:bg-[var(--brand-surface-dark)] dark:text-[var(--brand-foreground-dark)]",
+          title: "text-body font-semibold text-[var(--brand-heading)] dark:text-[var(--brand-heading-dark)]",
+          description: "text-sm text-[var(--brand-muted)] dark:text-[var(--brand-muted-dark)]",
           actionButton:
-            "rounded-full bg-[#1d4ed8] text-white font-medium px-4 py-1 hover:bg-[#1d4ed8]/90 transition-colors",
+            "rounded-full bg-brand-primary text-white font-medium px-4 py-1 hover:bg-brand-primary/90 transition-colors",
           cancelButton:
-            "rounded-full border border-[#002684]/20 text-[#002684] px-4 py-1 hover:bg-[#002684]/5 transition-colors",
+            "rounded-full border border-brand-primary/20 text-brand-heading px-4 py-1 hover:bg-brand-primary/5 transition-colors dark:text-brand-heading-dark dark:border-brand-primary/40 dark:hover:bg-brand-primary/10",
         },
         style: {
           fontFamily: "var(--font-geist-sans)",
-          backgroundColor: BRAND_BG,
-          color: BRAND_TEXT,
-          ["--toast-bg" as keyof React.CSSProperties]: BRAND_BG,
-          ["--toast-fg" as keyof React.CSSProperties]: BRAND_TEXT,
         },
       }}
       icons={{
-        success: <CircleCheckIcon className="size-4 text-[#0f9d58]" />,
-        info: <InfoIcon className="size-4 text-[#1d4ed8]" />,
-        warning: <TriangleAlertIcon className="size-4 text-[#f59e0b]" />,
-        error: <OctagonXIcon className="size-4 text-[#dc2626]" />,
-        loading: <Loader2Icon className="size-4 animate-spin text-[#1d4ed8]" />,
+        success: <CircleCheckIcon className="size-4 text-brand-success" />,
+        info: <InfoIcon className="size-4 text-brand-primary" />,
+        warning: <TriangleAlertIcon className="size-4 text-brand-warning" />,
+        error: <OctagonXIcon className="size-4 text-brand-error" />,
+        loading: <Loader2Icon className="size-4 animate-spin text-brand-primary" />,
       }}
       style={
         {
-          "--normal-bg": BRAND_BG,
-          "--normal-text": BRAND_TEXT,
-          "--normal-border": "#0026841a",
+          "--normal-bg": "var(--brand-surface)",
+          "--normal-text": "var(--brand-foreground)",
+          "--normal-border": "color-mix(in srgb, var(--brand-heading) 10%, transparent)",
           "--border-radius": "1.5rem",
         } as React.CSSProperties
       }

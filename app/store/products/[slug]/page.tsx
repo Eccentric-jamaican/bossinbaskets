@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { useMutation, useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
-import { useParams } from "next/navigation"
+import { useParams, usePathname, useSearchParams, useRouter } from "next/navigation"
 import { useUser } from "@clerk/nextjs"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "@/components/ui/button"
@@ -16,6 +16,9 @@ import { useErrorNotice } from "@/hooks/useErrorNotice"
 
 export default function ProductDetailPage() {
   const params = useParams()
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
   const { isSignedIn } = useUser()
   const slug = params.slug as string
   const product = useQuery(api.products.getBySlug, { slug })
@@ -68,6 +71,9 @@ export default function ProductDetailPage() {
   const totalPriceLabel = ((product.price * quantity) / 100).toFixed(2)
 
   const handleAddToCart = async () => {
+    const query = searchParams?.toString()
+    const currentUrl = query ? `${pathname}?${query}` : pathname
+
     if (!isSignedIn) {
       const message = "Please sign in to add baskets to your cart."
       setAddToCartError(message)
@@ -75,7 +81,7 @@ export default function ProductDetailPage() {
         title: "Sign in required",
         actionLabel: "Sign in",
         onAction: () => {
-          window.location.href = "/sign-in"
+          router.push(`/sign-in?returnUrl=${encodeURIComponent(currentUrl ?? "/store")}`)
         },
       })
       return

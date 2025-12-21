@@ -32,10 +32,10 @@ Create a cohesive, mobile-first admin experience with a persistent sidebar, stre
 ### Assumptions
 - Current shadcn/ui + Tailwind stack remains the base.
 - Sidebar primitive in `components/ui/sidebar.tsx` can be leveraged.
-- No additional analytics APIs are needed for dashboard metrics (can use placeholders or existing counts).
+- Dashboard hero metrics will initially use curated placeholder data with clear labels. When we want real counts we can wire the existing Convex hooks (orders, products) into lightweight summary components without schema changes.
 
 ### Open questions
-- [NON-BLOCKER] Should dashboard metrics pull real data (orders today, low stock) or remain curated placeholders for now?
+- _Resolved_: Metrics launch with placeholders. Real data requires follow-up task to create read-only Convex summary queries (orders today, low stock) but is outside this redesign to avoid backend scope creep.
 
 ## 5. Proposed Approach
 ### Architecture / design sketch
@@ -54,7 +54,7 @@ Create a cohesive, mobile-first admin experience with a persistent sidebar, stre
 1. Introduce shared nav config + icons for admin sections (new constants file or within sidebar component).
 2. Build `AdminSidebar` + mobile sheet using shadcn sidebar primitive; wire into `app/admin/layout.tsx`.
 3. Create new `AdminHeader` component for page titles/CTA area, refactor existing pages to use it.
-4. Redesign `/admin` dashboard: hero metrics grid, quick actions, recent activity list (placeholder data acceptable initially).
+4. Redesign `/admin` dashboard: hero metrics grid, quick actions, recent activity list (ship with labeled placeholder data; add real summaries in a future task if desired).
 5. Update Orders/Categories/Products pages to fit within the new shell (spacing, header usage) and ensure responsiveness.
 6. QA pass (mobile + desktop), update `/docs/admin-panel.md` or new doc, add regression notes/tests if needed.
 

@@ -4,7 +4,6 @@ import Link from "next/link"
 import { useClerk, useUser } from "@clerk/nextjs"
 import { useMutation, useQuery } from "convex/react"
 import { Menu, Minus, Plus, ShoppingCart, Trash2 } from "lucide-react"
-import { useEffect, useState } from "react"
 
 import { api } from "@/convex/_generated/api"
 import { Button } from "@/components/ui/button"
@@ -24,16 +23,10 @@ function formatCents(cents: number) {
 }
 
 export default function Nav() {
-  const { isSignedIn } = useUser()
+  const { isSignedIn, isLoaded } = useUser()
   const { signOut } = useClerk()
   const currentUser = useQuery(api.users.current)
   const isAdmin = currentUser?.role === "admin"
-
-  const [mounted, setMounted] = useState(false)
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
 
   const cartCount = useQuery(api.cart.getCount)
   const cartItems = useQuery(api.cart.get)
@@ -78,7 +71,7 @@ export default function Nav() {
 
                     <div className="h-px w-full bg-border" />
 
-                    {mounted && !isSignedIn && (
+                    {isLoaded && !isSignedIn && (
                       <>
                         <Button asChild variant="ghost" className="h-12 min-h-[44px] justify-start text-body text-[#002684] hover:text-[#002684]/80">
                           <Link href="/sign-in">Login</Link>
@@ -89,7 +82,7 @@ export default function Nav() {
                       </>
                     )}
 
-                    {mounted && isSignedIn && (
+                    {isLoaded && isSignedIn && (
                       <Button
                         variant="ghost"
                         onClick={() => signOut({ redirectUrl: "/" })}
@@ -126,7 +119,7 @@ export default function Nav() {
 
             <div className="flex items-center gap-1 lg:gap-2">
               <div className="hidden lg:flex flex-col gap-2 lg:flex-row lg:items-center">
-                {mounted && !isSignedIn && (
+                {isLoaded && !isSignedIn && (
                   <>
                     <Button asChild variant="ghost" className="h-12 min-h-[44px] px-3 text-body font-semibold text-[#002684] hover:bg-transparent hover:text-[#002684]/80">
                       <Link href="/sign-in">Login</Link>
@@ -136,7 +129,7 @@ export default function Nav() {
                     </Button>
                   </>
                 )}
-                {mounted && isSignedIn && (
+                {isLoaded && isSignedIn && (
                   <Button
                     variant="ghost"
                     onClick={() => signOut({ redirectUrl: "/" })}

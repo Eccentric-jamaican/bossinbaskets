@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { ArrowLeft, Home } from "lucide-react"
+import { Home, ShoppingBasket } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 
@@ -36,7 +36,7 @@ export default function NotFound() {
           >
             <Link href="/store">
               <span className="inline-flex items-center gap-2">
-                <ArrowLeft className="h-4 w-4" />
+                <ShoppingBasket className="h-4 w-4" />
                 Browse baskets
               </span>
             </Link>
