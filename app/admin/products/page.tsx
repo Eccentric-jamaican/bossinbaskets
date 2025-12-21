@@ -400,16 +400,17 @@ export default function AdminProductsPage() {
         </Alert>
       )}
 
-      <Card className="rounded-2xl shadow-sm">
-        <CardHeader className="flex flex-col gap-2">
-          <CardTitle className="text-h3 font-medium text-[#002684]">
-            Existing products
-          </CardTitle>
-          <p className="text-body leading-relaxed text-[#002684]/70">
-            Edit or remove products that are already in your store.
-          </p>
-        </CardHeader>
-        <CardContent>
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(280px,360px)_minmax(0,1fr)] lg:gap-10">
+        <Card className="rounded-2xl shadow-sm lg:sticky lg:top-6 lg:self-start lg:overflow-hidden">
+          <CardHeader className="flex flex-col gap-2">
+            <CardTitle className="text-h3 font-medium text-[#002684]">
+              Existing products
+            </CardTitle>
+            <p className="text-body leading-relaxed text-[#002684]/70">
+              Edit or remove products that are already in your store.
+            </p>
+          </CardHeader>
+          <CardContent>
           {products === undefined ? (
             <div className="flex flex-col items-center justify-center gap-3 py-8">
               <Spinner className="h-6 w-6 text-[#1d4ed8]" />
@@ -425,7 +426,7 @@ export default function AdminProductsPage() {
               </p>
             </div>
           ) : (
-            <ScrollArea className="max-h-[520px] pr-2">
+            <ScrollArea className="max-h-[60vh] pr-2 lg:h-[calc(100vh-220px)] lg:max-h-none">
               <div className="flex flex-col gap-4">
                 {products.map((p) => {
                   const categoryName = categoryById.get(String(p.categoryId))
@@ -530,16 +531,16 @@ export default function AdminProductsPage() {
               </div>
             </ScrollArea>
           )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
 
-      <Card className="rounded-2xl shadow-sm">
-        <CardHeader>
-          <CardTitle className="text-h3 font-medium text-[#002684]">
-            {editingId ? "Edit product" : "Create product"}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+        <Card className="rounded-2xl shadow-sm lg:min-h-0">
+          <CardHeader>
+            <CardTitle className="text-h3 font-medium text-[#002684]">
+              {editingId ? "Edit product" : "Create product"}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
           <div className="flex flex-col gap-6">
             <div className="flex flex-col gap-2">
               <Label htmlFor="name" className="text-body font-medium text-[#002684]">
@@ -924,7 +925,8 @@ export default function AdminProductsPage() {
             </div>
           </div>
         </CardContent>
-      </Card>
+        </Card>
+      </div>
     </div>
   )
 }
