@@ -104,8 +104,11 @@ function formatDate(timestamp: number) {
   })
 }
 
+// Compact Premium Order Card
 function OrderCard({ order, onClick }: { order: Order; onClick: () => void }) {
-  const StatusIcon = STATUS_CONFIG[order.status].icon
+  // Get top 3 product images
+  const productImages = order.items.slice(0, 3).map(item => item.productImage)
+  const remainingCount = order.items.length > 3 ? order.items.length - 3 : 0
 
   return (
     <div
@@ -113,41 +116,51 @@ function OrderCard({ order, onClick }: { order: Order; onClick: () => void }) {
       tabIndex={0}
       onClick={onClick}
       onKeyDown={(e) => {
-        if (e.key === "Enter") {
-          onClick()
-          return
-        }
-
-        if (e.key === " " || e.key === "Spacebar") {
+        if (e.key === "Enter" || e.key === " ") {
           e.preventDefault()
           onClick()
         }
       }}
-      className="flex flex-col gap-3 rounded-xl border bg-white p-4 cursor-pointer hover:shadow-md transition-shadow"
+      className="group flex flex-col gap-2 rounded-lg bg-white p-2.5 shadow-sm ring-1 ring-gray-950/5 transition-all hover:shadow-md active:scale-[0.98]"
     >
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex flex-col gap-1 min-w-0">
-          <p className="text-body font-medium text-[#002684] truncate">{order.orderNumber}</p>
-          <p className="text-sm-fluid text-[#002684]/70">{order.shippingAddress.recipientName}</p>
-        </div>
-        <Badge className={`${STATUS_CONFIG[order.status].color} flex items-center gap-1 shrink-0`}>
-          <StatusIcon className="h-3 w-3" />
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider truncate" title={order.orderNumber}>
+          {order.orderNumber.length > 10 ? `#${order.orderNumber.slice(-6)}` : order.orderNumber}
+        </span>
+        <span className="text-[10px] font-medium text-muted-foreground whitespace-nowrap">
+          {formatDate(order._creationTime).split(",")[0]}
+        </span>
+      </div>
+
+      <div className="flex flex-col">
+        <p className="text-xs font-semibold text-gray-900 line-clamp-1">{order.shippingAddress.recipientName}</p>
+        <p className="text-[10px] text-muted-foreground truncate">{order.shippingAddress.city}, {order.shippingAddress.country}</p>
+      </div>
+
+      <div className="flex items-center gap-1 mt-0.5">
+        {order.items.slice(0, 3).map((item, i) => (
+          <div key={i} className="h-5 w-5 rounded bg-gray-100 flex-shrink-0 overflow-hidden border border-white shadow-sm ring-1 ring-gray-950/5 relative -ml-1 first:ml-0 z-0 hover:z-10 transition-transform hover:scale-110">
+            {item.productImage ? (
+              <img src={item.productImage} alt="" className="h-full w-full object-cover" />
+            ) : (
+              <div className="h-full w-full flex items-center justify-center bg-gray-200">
+                <Package className="h-2.5 w-2.5 text-gray-400" />
+              </div>
+            )}
+          </div>
+        ))}
+        {remainingCount > 0 && (
+          <div className="h-5 w-5 rounded bg-gray-50 flex items-center justify-center text-[9px] font-medium text-gray-600 border border-white shadow-sm ring-1 ring-gray-950/5 -ml-1 z-0">
+            +{remainingCount}
+          </div>
+        )}
+      </div>
+
+      <div className="flex items-center justify-between pt-1.5 border-t border-gray-100 mt-0.5">
+        <Badge variant="outline" className={`border-0 px-1.5 py-0 h-4 text-[10px] capitalize ${STATUS_CONFIG[order.status].color.replace("text-", "bg-opacity-20 text-").replace("bg-", "bg-")}`}>
           {STATUS_CONFIG[order.status].label}
         </Badge>
-      </div>
-
-      <div className="flex items-center justify-between gap-2 text-sm-fluid">
-        <span className="text-[#002684]/70">{order.items.length} item{order.items.length !== 1 ? "s" : ""}</span>
-        <span className="font-semibold text-[#002684]">{formatCents(order.total)}</span>
-      </div>
-
-      <div className="flex items-center justify-between gap-2 text-sm-fluid text-[#002684]/50">
-        <span>{formatDate(order._creationTime)}</span>
-        <div className="flex items-center gap-1">
-          <CreditCard className="h-3 w-3" />
-          <span>{order.paymentMethod === "bank_transfer" ? "Bank" : "COD"}</span>
-          {order.paymentStatus === "paid" && <CheckCircle className="h-3 w-3 text-green-600" />}
-        </div>
+        <span className="text-xs font-bold text-gray-900">{formatCents(order.total)}</span>
       </div>
     </div>
   )
@@ -553,14 +566,14 @@ export default function AdminOrdersPage() {
           const config = STATUS_CONFIG[status]
           const Icon = config.icon
           return (
-            <Card key={status} className="rounded-xl">
-              <CardContent className="flex items-center gap-3 p-4">
-                <div className={`flex h-10 w-10 items-center justify-center rounded-full ${config.color}`}>
-                  <Icon className="h-5 w-5" />
+            <Card key={status} className="rounded-lg shadow-sm border-gray-100">
+              <CardContent className="flex items-center gap-3 p-3">
+                <div className={`flex h-8 w-8 items-center justify-center rounded-md ${config.color} bg-opacity-10`}>
+                  <Icon className="h-4 w-4" />
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-h3 font-semibold text-[#002684]">{statusCounts[status]}</span>
-                  <span className="text-sm-fluid text-[#002684]/70">{config.label}</span>
+                  <span className="text-lg font-bold text-gray-900 leading-none">{statusCounts[status]}</span>
+                  <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide mt-0.5">{config.label}</span>
                 </div>
               </CardContent>
             </Card>
@@ -570,8 +583,8 @@ export default function AdminOrdersPage() {
 
       {/* Kanban View */}
       {viewMode === "kanban" && (
-        <div className="overflow-x-auto pb-4">
-          <div className="flex gap-4 min-w-max">
+        <div className="h-[calc(100vh-200px)] overflow-x-auto pb-2">
+          <div className="flex h-full gap-4 px-1 min-w-max">
             {KANBAN_COLUMNS.map((status) => {
               const config = STATUS_CONFIG[status]
               const orders = ordersGrouped[status].filter(
@@ -581,26 +594,37 @@ export default function AdminOrdersPage() {
               )
 
               return (
-                <div key={status} className="flex flex-col gap-3 w-72 shrink-0">
-                  <div className="flex items-center justify-between">
+                <div key={status} className="flex flex-col w-64 shrink-0 h-full">
+                  {/* Column Header */}
+                  <div className="flex items-center justify-between mb-2 px-1">
                     <div className="flex items-center gap-2">
-                      <Badge className={config.color}>{config.label}</Badge>
-                      <span className="text-sm-fluid text-[#002684]/50">{orders.length}</span>
+                      <span className="text-xs font-semibold text-gray-700 uppercase tracking-wide">{config.label}</span>
+                      <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-gray-100 px-1.5 text-[10px] font-bold text-gray-600">
+                        {orders.length}
+                      </span>
                     </div>
                   </div>
 
-                  <div className="flex flex-col gap-3 rounded-xl bg-[#002684]/5 p-3 min-h-[200px]">
-                    {orders.length === 0 ? (
-                      <p className="text-sm-fluid text-[#002684]/50 text-center py-8">No orders</p>
-                    ) : (
-                      orders.map((order) => (
-                        <OrderCard
-                          key={String(order._id)}
-                          order={order}
-                          onClick={() => setSelectedOrderId(order._id)}
-                        />
-                      ))
-                    )}
+                  {/* Column Content */}
+                  <div className="flex-1 rounded-lg bg-gray-50/50 p-2 ring-1 ring-gray-200/50">
+                    <ScrollArea className="h-full">
+                      <div className="flex flex-col gap-2 pr-2 pb-2">
+                        {orders.length === 0 ? (
+                          <div className="flex flex-col items-center justify-center py-8 text-center opacity-40">
+                            <Package className="h-6 w-6 mb-1" />
+                            <p className="text-[10px] font-medium uppercase tracking-wide">Empty</p>
+                          </div>
+                        ) : (
+                          orders.map((order) => (
+                            <OrderCard
+                              key={String(order._id)}
+                              order={order}
+                              onClick={() => setSelectedOrderId(order._id)}
+                            />
+                          ))
+                        )}
+                      </div>
+                    </ScrollArea>
                   </div>
                 </div>
               )

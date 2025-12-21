@@ -2,11 +2,13 @@
 
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useMutation, useQuery } from "convex/react"
-import { Pencil, Trash2 } from "lucide-react"
+import { Pencil, Trash2, Package, Plus, Search } from "lucide-react"
+import { toast } from "sonner"
 
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { cn } from "@/lib/utils"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,6 +35,23 @@ import {
 import { Spinner } from "@/components/ui/spinner"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+  SheetFooter,
+} from "@/components/ui/sheet"
+import { Badge } from "@/components/ui/badge"
 
 function slugify(input: string) {
   return input
@@ -83,6 +102,9 @@ export default function AdminProductsPage() {
   ) as any
 
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const [isSheetOpen, setIsSheetOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState("")
 
   const [name, setName] = useState("")
   const [slug, setSlug] = useState("")
@@ -169,7 +191,11 @@ export default function AdminProductsPage() {
     setIsSlugManual(false)
     setShortDescription("")
     setDescription("")
-    setCategoryId("")
+    if (categories && categories.length > 0) {
+      setCategoryId(String(categories[0]._id))
+    } else {
+      setCategoryId("")
+    }
     setPriceDollars("")
     setCompareAtDollars("")
     setInventory("0")
@@ -182,6 +208,14 @@ export default function AdminProductsPage() {
     setAllowCustomNote(true)
     setMetaTitle("")
     setMetaDescription("")
+    setError(null)
+    setSuccess(null)
+  }
+
+  const openCreate = () => {
+    setEditingId(null)
+    resetForm()
+    setIsSheetOpen(true)
   }
 
   const startEditing = (product: AdminProduct) => {
@@ -212,11 +246,14 @@ export default function AdminProductsPage() {
     setAllowCustomNote(product.allowCustomNote)
     setMetaTitle(product.metaTitle ?? "")
     setMetaDescription(product.metaDescription ?? "")
+
+    setIsSheetOpen(true)
   }
 
   const cancelEditing = () => {
     setEditingId(null)
     resetForm()
+    setIsSheetOpen(false)
   }
 
   const uploadFiles = async (files: File[]) => {
@@ -328,11 +365,12 @@ export default function AdminProductsPage() {
           metaTitle: metaTitle.trim() ? metaTitle.trim() : undefined,
           metaDescription: metaDescription.trim() ? metaDescription.trim() : undefined,
         })
-        setSuccess(`Updated product: ${String(editingId)}`)
+        toast.success("Product updated")
+        setIsSheetOpen(false)
         setEditingId(null)
         resetForm()
       } else {
-        const id = await createProduct({
+        await createProduct({
           name: name.trim(),
           slug: normalizedSlug,
           description: description.trim(),
@@ -351,582 +389,385 @@ export default function AdminProductsPage() {
           metaTitle: metaTitle.trim() ? metaTitle.trim() : undefined,
           metaDescription: metaDescription.trim() ? metaDescription.trim() : undefined,
         })
-        setSuccess(`Created product: ${String(id)}`)
+        toast.success("Product created")
+        setIsSheetOpen(false)
         resetForm()
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
+      toast.error(err instanceof Error ? err.message : String(err))
     } finally {
       setIsSaving(false)
     }
   }
 
   const onDelete = async (id: Id<"products">) => {
-    setError(null)
-    setSuccess(null)
     try {
       setDeleteId(id)
       await removeProduct({ id })
-      setSuccess("Product deleted")
+      toast.success("Product deleted")
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err))
+      toast.error("Failed to delete product")
     } finally {
       setDeleteId(null)
     }
   }
 
+  // Filtered products
+  const filteredProducts = useMemo(() => {
+    if (!products) return []
+    if (!searchQuery) return products
+    const q = searchQuery.toLowerCase()
+    return products.filter(p =>
+      p.name.toLowerCase().includes(q) ||
+      p.slug.toLowerCase().includes(q)
+    )
+  }, [products, searchQuery])
+
+  if (!products) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <Spinner className="h-8 w-8 text-[#1d4ed8]" />
+      </div>
+    )
+  }
+
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-h2 font-serif font-semibold leading-tight text-[#002684]">
-          Products
-        </h1>
-        <p className="text-body leading-relaxed text-[#002684]/70">
-          Create a new product and publish it to the store.
-        </p>
+      {/* Header */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-h2 font-serif font-semibold text-[#002684]">
+            Products
+          </h1>
+          <p className="text-body text-[#002684]/70">
+            Manage your store's inventory
+          </p>
+        </div>
+        <Button onClick={openCreate} className="h-10 rounded-full bg-[#1d4ed8] px-6 text-white hover:bg-[#1d4ed8]/90">
+          <Plus className="h-4 w-4 mr-2" />
+          Add Product
+        </Button>
       </div>
 
-      {error && (
-        <Alert variant="destructive" className="rounded-2xl">
-          <AlertTitle>Could not save</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
+      {/* Main Content */}
+      <Card className="rounded-2xl shadow-sm overflow-hidden border-0 ring-1 ring-gray-200">
+        <div className="p-4 border-b border-gray-100 bg-gray-50/50 flex items-center gap-3">
+          <div className="relative flex-1 max-w-sm">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input
+              placeholder="Search products..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 h-10 w-full bg-white border-gray-200 focus-visible:ring-[#1d4ed8]"
+            />
+          </div>
+          <div className="flex items-center gap-2 text-xs text-gray-500 ml-auto">
+            <span className="font-medium text-gray-900">{filteredProducts.length}</span> products
+          </div>
+        </div>
 
-      {success && (
-        <Alert className="rounded-2xl">
-          <AlertTitle>Success</AlertTitle>
-          <AlertDescription>{success}</AlertDescription>
-        </Alert>
-      )}
-
-      <div className="grid items-start gap-6 lg:grid-cols-[minmax(280px,360px)_minmax(0,1fr)] lg:gap-10">
-        <Card className="rounded-2xl shadow-sm lg:sticky lg:top-6 lg:self-start lg:overflow-hidden">
-          <CardHeader className="flex flex-col gap-2">
-            <CardTitle className="text-h3 font-medium text-[#002684]">
-              Existing products
-            </CardTitle>
-            <p className="text-body leading-relaxed text-[#002684]/70">
-              Edit or remove products that are already in your store.
-            </p>
-          </CardHeader>
-          <CardContent>
-          {products === undefined ? (
-            <div className="flex flex-col items-center justify-center gap-3 py-8">
-              <Spinner className="h-6 w-6 text-[#1d4ed8]" />
-              <p className="text-body leading-relaxed text-[#002684]/70">
-                Loading products…
-              </p>
-            </div>
-          ) : products.length === 0 ? (
-            <div className="flex flex-col gap-2 rounded-2xl border bg-white p-4">
-              <p className="text-body font-medium text-[#002684]">No products yet</p>
-              <p className="text-body leading-relaxed text-[#002684]/70">
-                Create your first product below.
-              </p>
-            </div>
-          ) : (
-            <ScrollArea className="max-h-[60vh] pr-2 lg:h-[calc(100vh-220px)] lg:max-h-none">
-              <div className="flex flex-col gap-4">
-                {products.map((p) => {
-                  const categoryName = categoryById.get(String(p.categoryId))
-                  const image = p.images?.[0]
-                  return (
-                    <div
-                      key={String(p._id)}
-                      className="flex flex-col gap-4 rounded-2xl border bg-white p-4"
-                    >
-                      <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-                        <div className="flex flex-col gap-4 md:flex-row md:items-start">
-                          {image ? (
-                            <img
-                              src={image}
-                              alt={p.name}
-                              className="w-full h-auto object-cover rounded-xl border md:w-24"
-                            />
-                          ) : null}
-
-                          <div className="flex flex-col gap-1">
-                            <p className="text-body font-semibold text-[#002684]">
-                              {p.name}
-                            </p>
-                            <p className="text-sm-fluid text-[#002684]/70">/{p.slug}</p>
-                            <p className="text-sm-fluid text-[#002684]/70">
-                              {formatCents(p.price)}
-                              {Number.isFinite(p.inventory)
-                                ? ` • Inventory: ${p.inventory}`
-                                : ""}
-                            </p>
-                            {categoryName ? (
-                              <p className="text-sm-fluid text-[#002684]/70">
-                                Category: {categoryName}
-                              </p>
-                            ) : null}
-
-                            <div className="flex flex-wrap gap-2 pt-2">
-                              <span className="rounded-full border bg-white px-3 py-1 text-sm-fluid text-[#002684]">
-                                {p.isActive ? "Active" : "Inactive"}
-                              </span>
-                              {p.isFeatured ? (
-                                <span className="rounded-full border bg-white px-3 py-1 text-sm-fluid text-[#002684]">
-                                  Featured
-                                </span>
-                              ) : null}
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="flex flex-col gap-3 md:flex-row md:items-center">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => startEditing(p)}
-                            className="h-12 min-h-[44px] rounded-full px-6"
-                          >
-                            <span className="inline-flex items-center gap-2">
-                              <Pencil className="h-4 w-4" />
-                              Edit
-                            </span>
-                          </Button>
-
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button
-                                type="button"
-                                variant="destructive"
-                                className="h-12 min-h-[44px] rounded-full px-6"
-                              >
-                                <span className="inline-flex items-center gap-2">
-                                  <Trash2 className="h-4 w-4" />
-                                  Delete
-                                </span>
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Delete product?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  This will remove the product from the store. Any cart items
-                                  containing it will also be removed.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel className="h-12 min-h-[44px] rounded-full">
-                                  Cancel
-                                </AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() => void onDelete(p._id)}
-                                  className="h-12 min-h-[44px] rounded-full bg-destructive text-white hover:bg-destructive/90"
-                                >
-                                  {deleteId === p._id ? "Deleting…" : "Delete"}
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </div>
-                      </div>
+        <div className="relative overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow className="hover:bg-transparent border-gray-100">
+                <TableHead className="w-[80px]">Image</TableHead>
+                <TableHead className="min-w-[200px]">Product</TableHead>
+                <TableHead>Category</TableHead>
+                <TableHead>Price</TableHead>
+                <TableHead>Inventory</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredProducts.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="h-48 text-center">
+                    <div className="flex flex-col items-center justify-center text-gray-500">
+                      <Package className="h-8 w-8 mb-2 opacity-20" />
+                      <p>No products found</p>
                     </div>
-                  )
-                })}
-              </div>
-            </ScrollArea>
-          )}
-          </CardContent>
-        </Card>
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredProducts.map((p) => (
+                  <TableRow key={String(p._id)} className="hover:bg-gray-50/50 border-gray-100 group">
+                    <TableCell>
+                      <div className="h-12 w-12 rounded-lg bg-gray-100 overflow-hidden border border-gray-200">
+                        {p.images[0] ? (
+                          <img src={p.images[0]} alt="" className="h-full w-full object-cover" />
+                        ) : (
+                          <div className="h-full w-full flex items-center justify-center">
+                            <Package className="h-4 w-4 text-gray-300" />
+                          </div>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-col">
+                        <span className="font-medium text-[#002684]">{p.name}</span>
+                        <span className="text-xs text-gray-500 font-mono hidden sm:inline-block">/{p.slug}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="font-normal text-gray-600 border-gray-200">
+                        {categoryById.get(String(p.categoryId)) || "Uncategorized"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="font-medium text-[#002684]">{formatCents(p.price)}</div>
+                      {p.compareAtPrice && (
+                        <div className="text-xs text-gray-400 line-through">{formatCents(p.compareAtPrice)}</div>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <span className={cn(
+                          "font-medium",
+                          p.inventory === 0 ? "text-red-600" :
+                            p.inventory < 10 ? "text-amber-600" : "text-gray-700"
+                        )}>
+                          {p.inventory}
+                        </span>
+                        {p.inventory === 0 && <Badge variant="destructive" className="h-5 px-1.5 text-[10px]">OOS</Badge>}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-col gap-1 items-start">
+                        <Badge className={cn(
+                          "h-5 px-1.5 text-[10px] font-medium border-0",
+                          p.isActive ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-100" : "bg-gray-100 text-gray-600 hover:bg-gray-100"
+                        )}>
+                          {p.isActive ? "Active" : "Draft"}
+                        </Badge>
+                        {p.isFeatured && (
+                          <Badge variant="outline" className="h-5 px-1.5 text-[10px] text-amber-600 border-amber-200 bg-amber-50">
+                            Featured
+                          </Badge>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button variant="ghost" size="icon" onClick={() => startEditing(p)} className="h-8 w-8 text-gray-500 hover:text-[#1d4ed8] hover:bg-blue-50">
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-500 hover:text-red-600 hover:bg-red-50">
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete product?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This will remove <strong>{p.name}</strong> from the store.
+                                This action cannot be undone.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => onDelete(p._id)} className="bg-red-600 hover:bg-red-700">Delete</AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </Card>
 
-        <Card className="rounded-2xl shadow-sm lg:min-h-0">
-          <CardHeader>
-            <CardTitle className="text-h3 font-medium text-[#002684]">
-              {editingId ? "Edit product" : "Create product"}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-          <div className="flex flex-col gap-6">
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="name" className="text-body font-medium text-[#002684]">
-                Name
-              </Label>
-              <Input
-                id="name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Holiday Deluxe Gift Basket"
-                className="h-12 min-h-[44px]"
-              />
-            </div>
+      {/* Create/Edit Sheet */}
+      <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+        <SheetContent className="w-full sm:max-w-xl overflow-y-auto">
+          <SheetHeader className="mb-6">
+            <SheetTitle className="text-2xl font-serif text-[#002684]">
+              {editingId ? "Edit Product" : "New Product"}
+            </SheetTitle>
+          </SheetHeader>
 
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="slug" className="text-body font-medium text-[#002684]">
-                Slug
-              </Label>
-              <Input
-                id="slug"
-                value={slug}
-                onChange={(e) => {
-                  const next = e.target.value
-                  setSlug(next)
-                  setIsSlugManual(next.trim().length > 0)
-                }}
-                placeholder="holiday-deluxe-gift-basket"
-                className="h-12 min-h-[44px]"
-              />
-            </div>
+          <ScrollArea className="h-[calc(100vh-180px)] pr-4">
+            <div className="flex flex-col gap-6 pb-20">
+              {error && (
+                <Alert variant="destructive">
+                  <AlertTitle>Error</AlertTitle>
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
 
-            <div className="flex flex-col gap-2">
-              <Label
-                htmlFor="shortDescription"
-                className="text-body font-medium text-[#002684]"
-              >
-                Short description (optional)
-              </Label>
-              <Textarea
-                id="shortDescription"
-                value={shortDescription}
-                onChange={(e) => setShortDescription(e.target.value)}
-                placeholder="A premium basket packed with favorites."
-                className="min-h-[96px]"
-              />
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <Label
-                htmlFor="description"
-                className="text-body font-medium text-[#002684]"
-              >
-                Description
-              </Label>
-              <Textarea
-                id="description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Full product description…"
-                className="min-h-[140px]"
-              />
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <Label className="text-body font-medium text-[#002684]">Category</Label>
-              <Select value={categoryId} onValueChange={(v) => setCategoryId(v)}>
-                <SelectTrigger className="h-12 min-h-[44px]">
-                  <SelectValue
-                    placeholder={categories ? "Select a category" : "Loading categories…"}
-                  />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories ? (
-                    categories.map((c) => (
-                      <SelectItem key={String(c._id)} value={String(c._id)}>
-                        {c.name}
-                      </SelectItem>
-                    ))
-                  ) : (
-                    <SelectItem value="loading" disabled>
-                      Loading…
-                    </SelectItem>
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="grid gap-6 md:grid-cols-2">
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="price" className="text-body font-medium text-[#002684]">
-                  Price (USD)
-                </Label>
-                <Input
-                  id="price"
-                  inputMode="decimal"
-                  value={priceDollars}
-                  onChange={(e) => setPriceDollars(e.target.value)}
-                  placeholder="49.99"
-                  className="h-12 min-h-[44px]"
-                />
-              </div>
-
-              <div className="flex flex-col gap-2">
-                <Label
-                  htmlFor="compareAt"
-                  className="text-body font-medium text-[#002684]"
-                >
-                  Compare-at (optional)
-                </Label>
-                <Input
-                  id="compareAt"
-                  inputMode="decimal"
-                  value={compareAtDollars}
-                  onChange={(e) => setCompareAtDollars(e.target.value)}
-                  placeholder="59.99"
-                  className="h-12 min-h-[44px]"
-                />
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <Label
-                htmlFor="inventory"
-                className="text-body font-medium text-[#002684]"
-              >
-                Inventory
-              </Label>
-              <Input
-                id="inventory"
-                inputMode="numeric"
-                value={inventory}
-                onChange={(e) => setInventory(e.target.value)}
-                className="h-12 min-h-[44px]"
-              />
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <Label
-                htmlFor="images"
-                className="text-body font-medium text-[#002684]"
-              >
-                Images
-              </Label>
-
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                multiple
-                className="hidden"
-                onChange={(e) => {
-                  const files = Array.from(e.target.files ?? [])
-                  void uploadFiles(files)
-                }}
-              />
-
-              <div
-                className={
-                  "flex flex-col gap-3 rounded-2xl border bg-white p-4 transition-colors " +
-                  (isDragActive ? "border-[#1d4ed8] bg-[#1d4ed8]/5" : "")
-                }
-                onDragEnter={(e) => {
-                  e.preventDefault()
-                  e.stopPropagation()
-                  setIsDragActive(true)
-                }}
-                onDragOver={(e) => {
-                  e.preventDefault()
-                  e.stopPropagation()
-                  setIsDragActive(true)
-                }}
-                onDragLeave={(e) => {
-                  e.preventDefault()
-                  e.stopPropagation()
-                  setIsDragActive(false)
-                }}
-                onDrop={(e) => {
-                  e.preventDefault()
-                  e.stopPropagation()
-                  setIsDragActive(false)
-                  const files = Array.from(e.dataTransfer.files ?? [])
-                  void uploadFiles(files)
-                }}
-              >
-                <div className="flex flex-col gap-1">
-                  <p className="text-body leading-relaxed text-[#002684]">
-                    Drag & drop images here, or choose files
-                  </p>
-                  <p className="text-sm-fluid text-[#002684]/70">
-                    You can also paste image URLs below.
-                  </p>
+              {/* Core Info */}
+              <div className="space-y-4">
+                <div className="grid gap-2">
+                  <Label>Name</Label>
+                  <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Product Name" />
                 </div>
+                <div className="grid gap-2">
+                  <Label>Slug</Label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">/</span>
+                    <Input
+                      value={slug}
+                      onChange={(e) => {
+                        setSlug(e.target.value);
+                        setIsSlugManual(true)
+                      }}
+                      className="pl-6 font-mono text-sm"
+                      placeholder="product-slug"
+                    />
+                  </div>
+                </div>
+              </div>
 
-                <div className="flex flex-col gap-3 md:flex-row">
-                  <Button
-                    type="button"
+              {/* Category & Status */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label>Category</Label>
+                  <Select value={categoryId} onValueChange={setCategoryId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories?.map(c => (
+                        <SelectItem key={String(c._id)} value={String(c._id)}>{c.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-2">
+                  <Label>Status</Label>
+                  <div className="flex items-center gap-2 h-10 border rounded-md px-3 bg-white">
+                    <Switch checked={isActive} onCheckedChange={setIsActive} />
+                    <span className="text-sm font-medium text-gray-600">{isActive ? "Active" : "Draft"}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Pricing & Inventory */}
+              <div className="grid grid-cols-3 gap-4">
+                <div className="grid gap-2">
+                  <Label>Price</Label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
+                    <Input value={priceDollars} onChange={(e) => setPriceDollars(e.target.value)} className="pl-7" placeholder="0.00" />
+                  </div>
+                </div>
+                <div className="grid gap-2">
+                  <Label>Compare At</Label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
+                    <Input value={compareAtDollars} onChange={(e) => setCompareAtDollars(e.target.value)} className="pl-7" placeholder="0.00" />
+                  </div>
+                </div>
+                <div className="grid gap-2">
+                  <Label>Inventory</Label>
+                  <Input value={inventory} onChange={(e) => setInventory(e.target.value)} type="number" />
+                </div>
+              </div>
+
+              {/* Description */}
+              <div className="space-y-4">
+                <div className="grid gap-2">
+                  <Label>Short Description</Label>
+                  <Textarea value={shortDescription} onChange={(e) => setShortDescription(e.target.value)} className="h-20" placeholder="Brief description for listings" />
+                </div>
+                <div className="grid gap-2">
+                  <Label>Full Description</Label>
+                  <Textarea value={description} onChange={(e) => setDescription(e.target.value)} className="h-32" placeholder="Detailed product description" />
+                </div>
+              </div>
+
+              {/* Images */}
+              <div className="grid gap-2">
+                <Label>Images</Label>
+                <div className="grid grid-cols-3 gap-3 mb-2">
+                  {uploadedImageUrls.map((url) => (
+                    <div key={url} className="relative aspect-square rounded-lg border overflow-hidden group/img">
+                      <img src={url} alt="" className="w-full h-full object-cover" />
+                      <button
+                        onClick={() => setUploadedImageUrls(prev => prev.filter(u => u !== url))}
+                        className="absolute top-1 right-1 bg-white/80 p-1 rounded-full text-red-600 opacity-0 group-hover/img:opacity-100 transition-opacity"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                  <button
                     onClick={() => fileInputRef.current?.click()}
                     disabled={isUploadingImages}
-                    className="h-12 min-h-[44px] rounded-full bg-[#1d4ed8] px-6 text-white hover:bg-[#1d4ed8]/90"
+                    className="aspect-square rounded-lg border-2 border-dashed border-gray-200 flex flex-col items-center justify-center gap-1 text-gray-400 hover:border-[#1d4ed8] hover:text-[#1d4ed8] hover:bg-blue-50 transition-colors"
                   >
-                    {isUploadingImages ? (
-                      <span className="inline-flex items-center gap-2">
-                        <Spinner className="h-4 w-4" />
-                        Uploading…
-                      </span>
-                    ) : (
-                      "Choose files"
+                    {isUploadingImages ? <Spinner className="h-6 w-6" /> : (
+                      <>
+                        <Plus className="h-6 w-6" />
+                        <span className="text-xs font-medium">Add Image</span>
+                      </>
                     )}
-                  </Button>
-
-                  {uploadedImageUrls.length > 0 ? (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setUploadedImageUrls([])}
-                      className="h-12 min-h-[44px] rounded-full px-6"
-                    >
-                      Clear uploads
-                    </Button>
-                  ) : null}
+                  </button>
                 </div>
-
-                {imageUploadError ? (
-                  <p className="text-sm-fluid text-destructive">{imageUploadError}</p>
-                ) : null}
-
-                {uploadedImageUrls.length > 0 ? (
-                  <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
-                    {uploadedImageUrls.map((url) => (
-                      <div
-                        key={url}
-                        className="flex flex-col gap-2 rounded-xl border bg-white p-2"
-                      >
-                        <img
-                          src={url}
-                          alt="Uploaded"
-                          className="w-full h-auto object-cover rounded-lg"
-                        />
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() =>
-                            setUploadedImageUrls((prev) => prev.filter((u) => u !== url))
-                          }
-                          className="h-12 min-h-[44px] rounded-full"
-                        >
-                          Remove
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                ) : null}
-
+                <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={(e) => uploadFiles(Array.from(e.target.files ?? []))} />
+                <Textarea
+                  value={imagesCsv}
+                  onChange={(e) => setImagesCsv(e.target.value)}
+                  placeholder="Or paste image URLs (comma-separated)..."
+                  className="h-16 text-sm"
+                />
               </div>
 
-              <Textarea
-                id="images"
-                value={imagesCsv}
-                onChange={(e) => setImagesCsv(e.target.value)}
-                placeholder="https://.../image1.jpg, https://.../image2.jpg"
-                className="min-h-[96px]"
-              />
-
-              <p className="text-sm-fluid text-[#002684]/70">
-                Total images attached: {combinedImages.length}
-              </p>
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="tags" className="text-body font-medium text-[#002684]">
-                Tags (comma-separated)
-              </Label>
-              <Input
-                id="tags"
-                value={tagsCsv}
-                onChange={(e) => setTagsCsv(e.target.value)}
-                placeholder="holiday, chocolate, premium"
-                className="h-12 min-h-[44px]"
-              />
-            </div>
-
-            <div className="grid gap-6 md:grid-cols-2">
-              <div className="flex flex-col gap-3 rounded-2xl border bg-white p-4">
-                <div className="flex items-center justify-between gap-4">
-                  <div className="flex flex-col gap-1">
-                    <p className="text-body font-medium text-[#002684]">Active</p>
-                    <p className="text-sm-fluid text-[#002684]/70">
-                      Visible in the storefront.
-                    </p>
-                  </div>
-                  <Switch checked={isActive} onCheckedChange={setIsActive} />
-                </div>
+              {/* Tags */}
+              <div className="grid gap-2">
+                <Label>Tags</Label>
+                <Input value={tagsCsv} onChange={(e) => setTagsCsv(e.target.value)} placeholder="holiday, chocolate, premium" />
               </div>
 
-              <div className="flex flex-col gap-3 rounded-2xl border bg-white p-4">
-                <div className="flex items-center justify-between gap-4">
-                  <div className="flex flex-col gap-1">
-                    <p className="text-body font-medium text-[#002684]">Featured</p>
-                    <p className="text-sm-fluid text-[#002684]/70">
-                      Highlight this product.
-                    </p>
+              {/* Settings */}
+              <div className="border-t pt-4 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label className="text-base">Featured Product</Label>
+                    <p className="text-xs text-muted-foreground">Display this product on the home page.</p>
                   </div>
                   <Switch checked={isFeatured} onCheckedChange={setIsFeatured} />
                 </div>
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-3 rounded-2xl border bg-white p-4">
-              <div className="flex items-center justify-between gap-4">
-                <div className="flex flex-col gap-1">
-                  <p className="text-body font-medium text-[#002684]">Allow custom note</p>
-                  <p className="text-sm-fluid text-[#002684]/70">
-                    Let customers add a message.
-                  </p>
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label className="text-base">Allow Custom Notes</Label>
+                    <p className="text-xs text-muted-foreground">Customers can add a gift message.</p>
+                  </div>
+                  <Switch checked={allowCustomNote} onCheckedChange={setAllowCustomNote} />
                 </div>
-                <Switch
-                  checked={allowCustomNote}
-                  onCheckedChange={setAllowCustomNote}
-                />
+              </div>
+
+              {/* SEO */}
+              <div className="border-t pt-4 space-y-4">
+                <p className="text-sm font-medium text-muted-foreground">SEO Settings</p>
+                <div className="grid gap-2">
+                  <Label>Meta Title</Label>
+                  <Input value={metaTitle} onChange={(e) => setMetaTitle(e.target.value)} placeholder="Page title for search engines" />
+                </div>
+                <div className="grid gap-2">
+                  <Label>Meta Description</Label>
+                  <Textarea value={metaDescription} onChange={(e) => setMetaDescription(e.target.value)} className="h-20" placeholder="Short description for search engines" />
+                </div>
               </div>
             </div>
+          </ScrollArea>
 
-            <div className="flex flex-col gap-2">
-              <Label
-                htmlFor="metaTitle"
-                className="text-body font-medium text-[#002684]"
-              >
-                Meta title (optional)
-              </Label>
-              <Input
-                id="metaTitle"
-                value={metaTitle}
-                onChange={(e) => setMetaTitle(e.target.value)}
-                className="h-12 min-h-[44px]"
-              />
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <Label
-                htmlFor="metaDescription"
-                className="text-body font-medium text-[#002684]"
-              >
-                Meta description (optional)
-              </Label>
-              <Textarea
-                id="metaDescription"
-                value={metaDescription}
-                onChange={(e) => setMetaDescription(e.target.value)}
-                className="min-h-[96px]"
-              />
-            </div>
-
-            <div className="flex flex-col gap-3 md:flex-row md:items-center">
-              <Button
-                type="button"
-                onClick={onSave}
-                disabled={isSaving}
-                className="h-12 min-h-[44px] rounded-full bg-[#1d4ed8] px-6 text-white hover:bg-[#1d4ed8]/90"
-              >
-                {isSaving ? (
-                  <span className="inline-flex items-center gap-2">
-                    <Spinner className="h-4 w-4" />
-                    Saving…
-                  </span>
-                ) : editingId ? (
-                  "Save changes"
-                ) : (
-                  "Create product"
-                )}
-              </Button>
-
-              {editingId ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={cancelEditing}
-                  className="h-12 min-h-[44px] rounded-full px-6"
-                >
-                  Cancel edit
-                </Button>
-              ) : null}
-            </div>
+          {/* Footer Actions */}
+          <div className="absolute bottom-0 left-0 right-0 bg-white border-t p-4 flex gap-3">
+            <Button variant="outline" className="flex-1" onClick={cancelEditing}>Cancel</Button>
+            <Button className="flex-1 bg-[#1d4ed8]" onClick={onSave} disabled={isSaving}>
+              {isSaving && <Spinner className="mr-2 h-4 w-4" />}
+              {editingId ? "Save Changes" : "Create Product"}
+            </Button>
           </div>
-        </CardContent>
-        </Card>
-      </div>
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }

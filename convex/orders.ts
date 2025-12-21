@@ -371,6 +371,8 @@ export const listAll = query({
     page: v.array(orderValidator),
     isDone: v.boolean(),
     continueCursor: v.string(),
+    pageStatus: v.optional(v.union(v.literal("SplitRecommended"), v.literal("SplitRequired"), v.null())),
+    splitCursor: v.optional(v.union(v.string(), v.null())),
   }),
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
