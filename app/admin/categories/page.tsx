@@ -36,6 +36,7 @@ function slugify(input: string) {
 export default function AdminCategoriesPage() {
   const categories = useQuery(api.categories.listAll)
   const createCategory = useMutation(api.categories.create)
+  const updateCategory = useMutation(api.categories.update)
   const removeCategory = useMutation(api.categories.remove)
 
   const [name, setName] = useState("")
@@ -45,6 +46,10 @@ export default function AdminCategoriesPage() {
   const [sortOrder, setSortOrder] = useState("")
   const [isActive, setIsActive] = useState(true)
 
+  const [editingCategory, setEditingCategory] = useState<{
+    id: Id<"categories">
+    name: string
+  } | null>(null)
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
@@ -59,11 +64,12 @@ export default function AdminCategoriesPage() {
   }, [name, slug])
 
   useEffect(() => {
+    if (editingCategory) return
     if (sortOrder.trim()) return
     if (!categories) return
     const next = categories.length === 0 ? 1 : Math.max(...categories.map((c) => c.sortOrder)) + 1
     setSortOrder(String(next))
-  }, [categories, sortOrder])
+  }, [categories, sortOrder, editingCategory])
 
   const parsed = useMemo(() => {
     const normalizedSlug = slugify(slug)
@@ -79,7 +85,17 @@ export default function AdminCategoriesPage() {
     }
   }, [description, imageUrl, slug, sortOrder])
 
-  const onCreate = async () => {
+  const resetForm = () => {
+    setName("")
+    setSlug("")
+    setDescription("")
+    setImageUrl("")
+    setSortOrder("")
+    setIsActive(true)
+    setEditingCategory(null)
+  }
+
+  const onSubmit = async () => {
     setError(null)
     setSuccess(null)
 
@@ -100,22 +116,31 @@ export default function AdminCategoriesPage() {
 
     try {
       setIsSaving(true)
-      const id = await createCategory({
-        name: name.trim(),
-        slug: parsed.normalizedSlug,
-        description: parsed.description,
-        imageUrl: parsed.imageUrl,
-        isActive,
-        sortOrder: parsed.sortOrderNumber,
-      })
+      if (editingCategory) {
+        await updateCategory({
+          id: editingCategory.id,
+          name: name.trim(),
+          slug: parsed.normalizedSlug,
+          description: parsed.description,
+          imageUrl: parsed.imageUrl,
+          isActive,
+          sortOrder: parsed.sortOrderNumber,
+        })
+        setSuccess(`Updated category: ${editingCategory.name}`)
+        resetForm()
+      } else {
+        const id = await createCategory({
+          name: name.trim(),
+          slug: parsed.normalizedSlug,
+          description: parsed.description,
+          imageUrl: parsed.imageUrl,
+          isActive,
+          sortOrder: parsed.sortOrderNumber,
+        })
 
-      setSuccess(`Created category: ${String(id)}`)
-      setName("")
-      setSlug("")
-      setDescription("")
-      setImageUrl("")
-      setSortOrder("")
-      setIsActive(true)
+        setSuccess(`Created category: ${String(id)}`)
+        resetForm()
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
     } finally {
@@ -132,6 +157,16 @@ export default function AdminCategoriesPage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
     }
+  }
+
+  const startEditing = (category: (typeof categories)[number]) => {
+    setEditingCategory({ id: category._id, name: category.name })
+    setName(category.name)
+    setSlug(category.slug)
+    setDescription(category.description ?? "")
+    setImageUrl(category.imageUrl ?? "")
+    setSortOrder(String(category.sortOrder))
+    setIsActive(category.isActive)
   }
 
   return (
@@ -162,7 +197,7 @@ export default function AdminCategoriesPage() {
       <Card className="rounded-2xl shadow-sm">
         <CardHeader>
           <CardTitle className="text-h3 font-medium text-[#002684]">
-            Create category
+            {editingCategory ? "Edit category" : "Create category"}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -255,21 +290,37 @@ export default function AdminCategoriesPage() {
               </div>
             </div>
 
-            <Button
-              type="button"
-              onClick={onCreate}
-              disabled={isSaving}
-              className="h-12 min-h-[44px] rounded-full bg-[#1d4ed8] px-6 text-white hover:bg-[#1d4ed8]/90"
-            >
-              {isSaving ? (
-                <span className="inline-flex items-center gap-2">
-                  <Spinner className="h-4 w-4" />
-                  Saving…
-                </span>
-              ) : (
-                "Create category"
-              )}
-            </Button>
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <Button
+                type="button"
+                onClick={onSubmit}
+                disabled={isSaving}
+                className="h-12 min-h-[44px] rounded-full bg-[#1d4ed8] px-6 text-white hover:bg-[#1d4ed8]/90"
+              >
+                {isSaving ? (
+                  <span className="inline-flex items-center gap-2">
+                    <Spinner className="h-4 w-4" />
+                    Saving…
+                  </span>
+                ) : editingCategory ? (
+                  "Save changes"
+                ) : (
+                  "Create category"
+                )}
+              </Button>
+
+              {editingCategory ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={isSaving}
+                  onClick={resetForm}
+                  className="h-12 min-h-[44px] rounded-full px-6"
+                >
+                  Cancel editing
+                </Button>
+              ) : null}
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -314,6 +365,14 @@ export default function AdminCategoriesPage() {
                   </div>
 
                   <div className="flex flex-col gap-3 sm:flex-row">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={() => startEditing(c)}
+                      className="h-12 min-h-[44px] rounded-full px-6"
+                    >
+                      Edit
+                    </Button>
                     <Button
                       type="button"
                       variant="outline"

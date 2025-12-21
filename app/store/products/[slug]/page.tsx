@@ -4,18 +4,26 @@ import { useEffect, useState } from "react"
 import { useMutation, useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { useParams } from "next/navigation"
+import { useUser } from "@clerk/nextjs"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Spinner } from "@/components/ui/spinner"
 import { Star, Truck, ShieldCheck, Gift } from "lucide-react"
+import { toast } from "sonner"
+import { useErrorNotice } from "@/hooks/useErrorNotice"
 
 export default function ProductDetailPage() {
   const params = useParams()
+  const { isSignedIn } = useUser()
   const slug = params.slug as string
   const product = useQuery(api.products.getBySlug, { slug })
   const addToCart = useMutation(api.cart.add)
+  const { showError } = useErrorNotice({
+    title: "We couldn't add that to your cart",
+    fallbackDescription: "Please refresh or try again shortly.",
+  })
   const [selectedImageIndex, setSelectedImageIndex] = useState(0)
   const [quantity, setQuantity] = useState(1)
   const [isAddingToCart, setIsAddingToCart] = useState(false)
@@ -60,6 +68,19 @@ export default function ProductDetailPage() {
   const totalPriceLabel = ((product.price * quantity) / 100).toFixed(2)
 
   const handleAddToCart = async () => {
+    if (!isSignedIn) {
+      const message = "Please sign in to add baskets to your cart."
+      setAddToCartError(message)
+      showError(message, {
+        title: "Sign in required",
+        actionLabel: "Sign in",
+        onAction: () => {
+          window.location.href = "/sign-in"
+        },
+      })
+      return
+    }
+
     setAddToCartError(null)
     setAddToCartSuccess(null)
     setIsAddingToCart(true)
@@ -70,8 +91,14 @@ export default function ProductDetailPage() {
         quantity,
       })
       setAddToCartSuccess("Added to cart")
+      toast.success("Basket added", {
+        description: "It’s waiting for you in the cart when you're ready.",
+      })
     } catch (error) {
-      setAddToCartError(error instanceof Error ? error.message : "Failed to add to cart")
+      const friendlyMessage = showError(error, {
+        context: "Cart action",
+      })
+      setAddToCartError(friendlyMessage)
     } finally {
       setIsAddingToCart(false)
     }
@@ -227,16 +254,16 @@ export default function ProductDetailPage() {
           )}
 
           {addToCartError && (
-            <p className="text-sm-fluid text-red-600 text-center">{addToCartError}</p>
+            <p className="text-sm-fluid text-red-600">{addToCartError}</p>
           )}
 
           {!addToCartError && addToCartSuccess && (
-            <p className="text-sm-fluid text-[#1d4ed8] text-center">{addToCartSuccess}</p>
+            <p className="text-sm-fluid text-[#1d4ed8] text-left">{addToCartSuccess}</p>
           )}
           
-          <p className="text-center text-xs text-[#002684]/50 mt-2">
-            Secure checkout powered by Stripe
-          </p>
+          {/* <p className="text-center text-xs text-[#002684]/50 mt-2">
+           secure checkout powered by Stripe
+          </p> */}
         </div>
       </div>
     </div>

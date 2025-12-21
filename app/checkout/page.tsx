@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation"
 import { useUser } from "@clerk/nextjs"
 import { useMutation, useQuery } from "convex/react"
 import { CheckCircle, ChevronLeft, CreditCard, Truck } from "lucide-react"
+import { toast } from "sonner"
 
 import { api } from "@/convex/_generated/api"
 import { Button } from "@/components/ui/button"
@@ -16,6 +17,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Textarea } from "@/components/ui/textarea"
 import { Spinner } from "@/components/ui/spinner"
 import { Checkbox } from "@/components/ui/checkbox"
+import { useErrorNotice } from "@/hooks/useErrorNotice"
 
 type Step = "shipping" | "payment" | "confirmation"
 
@@ -30,6 +32,11 @@ export default function CheckoutPage() {
   const cartItems = useQuery(api.cart.get)
   const currentUser = useQuery(api.users.current)
   const placeOrder = useMutation(api.orders.createFromCart)
+  const { showError } = useErrorNotice({
+    title: "We couldn't place that order",
+    context: "Checkout",
+    fallbackDescription: "Please review your details and try again shortly.",
+  })
 
   const [step, setStep] = useState<Step>("shipping")
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -85,7 +92,12 @@ export default function CheckoutPage() {
     country.trim()
 
   const handlePlaceOrder = async () => {
-    if (!isShippingValid) return
+    if (!isShippingValid) {
+      const message = "Please fill in your shipping address before placing the order."
+      setError(message)
+      showError(message, { title: "Shipping details missing" })
+      return
+    }
 
     setIsSubmitting(true)
     setError(null)
@@ -114,7 +126,8 @@ export default function CheckoutPage() {
       setOrderNumber(orderId)
       setStep("confirmation")
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to place order")
+      const friendly = showError(err)
+      setError(friendly)
     } finally {
       setIsSubmitting(false)
     }

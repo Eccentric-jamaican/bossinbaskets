@@ -18,7 +18,7 @@ This document describes the Admin Panel scaffolding for product management (crea
 - `app/admin/page.tsx`
   - Dashboard landing page.
 - `app/admin/categories/page.tsx`
-  - Client page that renders a create/list UI for categories and calls `api.categories.create` / `api.categories.remove`.
+  - Client page that renders a create/list/edit UI for categories and calls `api.categories.create` / `api.categories.update` / `api.categories.remove`.
 - `app/admin/products/page.tsx`
   - Client page that renders the product creation form and calls `api.products.create`.
 
@@ -105,6 +105,8 @@ Current capabilities:
   - Image URL (optional)
   - Sort order (optional)
   - Active toggle
+- Edit existing categories
+  - Selecting “Edit” on an existing category hydrates the form, lets you update any field, and persists via `api.categories.update`.
 - List categories
 - Delete categories
 
