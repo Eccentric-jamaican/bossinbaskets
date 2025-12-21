@@ -8,6 +8,11 @@ import { Button } from "@/components/ui/button"
 export default function GlobalError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   return (
     <html lang="en">
+      <head>
+        <meta charSet="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Error — BossinBaskets</title>
+      </head>
       <body className="bg-[#0f172a] text-white antialiased">
         <main className="flex min-h-screen flex-col items-center justify-center px-4 py-16">
           <div className="mx-auto flex max-w-3xl flex-col gap-8 rounded-3xl bg-white/5 p-10 text-center shadow-2xl ring-1 ring-white/10 backdrop-blur">

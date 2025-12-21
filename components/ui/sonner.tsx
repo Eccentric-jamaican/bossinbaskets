@@ -27,20 +27,20 @@ const Toaster = ({ ...props }: ToasterProps) => {
           title: "text-body font-semibold text-[var(--brand-heading)] dark:text-[var(--brand-heading-dark)]",
           description: "text-sm text-[var(--brand-muted)] dark:text-[var(--brand-muted-dark)]",
           actionButton:
-            "rounded-full bg-brand-primary text-white font-medium px-4 py-1 hover:bg-brand-primary/90 transition-colors",
+            "rounded-full bg-[var(--brand-primary)] text-white font-medium px-4 py-1 hover:bg-[var(--brand-primary)]/90 transition-colors",
           cancelButton:
-            "rounded-full border border-brand-primary/20 text-brand-heading px-4 py-1 hover:bg-brand-primary/5 transition-colors dark:text-brand-heading-dark dark:border-brand-primary/40 dark:hover:bg-brand-primary/10",
+            "rounded-full border border-[var(--brand-primary)]/20 text-[var(--brand-heading)] px-4 py-1 hover:bg-[var(--brand-primary)]/5 transition-colors dark:text-[var(--brand-heading-dark)] dark:border-[var(--brand-primary)]/40 dark:hover:bg-[var(--brand-primary)]/10",
         },
         style: {
           fontFamily: "var(--font-geist-sans)",
         },
       }}
       icons={{
-        success: <CircleCheckIcon className="size-4 text-brand-success" />,
-        info: <InfoIcon className="size-4 text-brand-primary" />,
-        warning: <TriangleAlertIcon className="size-4 text-brand-warning" />,
-        error: <OctagonXIcon className="size-4 text-brand-error" />,
-        loading: <Loader2Icon className="size-4 animate-spin text-brand-primary" />,
+        success: <CircleCheckIcon className="size-4 text-[var(--brand-success)]" />,
+        info: <InfoIcon className="size-4 text-[var(--brand-primary)]" />,
+        warning: <TriangleAlertIcon className="size-4 text-[var(--brand-warning)]" />,
+        error: <OctagonXIcon className="size-4 text-[var(--brand-error)]" />,
+        loading: <Loader2Icon className="size-4 animate-spin text-[var(--brand-primary)]" />,
       }}
       style={
         {

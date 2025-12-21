@@ -92,7 +92,7 @@ export default function Nav() {
                       </Button>
                     )}
 
-                    {isAdmin && (
+                    {currentUser && isAdmin && (
                       <>
                         <div className="h-px w-full bg-border" />
                         <Button asChild variant="ghost" className="h-12 min-h-[44px] justify-start text-body text-[#002684] hover:text-[#002684]/80">
@@ -108,7 +108,7 @@ export default function Nav() {
                 BossinBaskets
               </Link>
 
-              {isAdmin && (
+              {currentUser && isAdmin && (
                 <nav className="hidden lg:flex items-center gap-1 ml-4">
                   <Button asChild variant="ghost" className="h-12 min-h-[44px] px-3 text-body font-semibold text-[#002684] hover:bg-transparent hover:text-[#002684]/80">
                     <Link href="/admin">Admin</Link>
