@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useState, type FormEvent } from "react"
 import { useMutation, useQuery } from "convex/react"
 import { Pencil, Trash2, Plus, FolderOpen, Image as ImageIcon } from "lucide-react"
 import { toast } from "sonner"
@@ -64,6 +64,7 @@ export default function AdminCategoriesPage() {
   const [slug, setSlug] = useState("")
   const [description, setDescription] = useState("")
   const [imageUrl, setImageUrl] = useState("")
+  const [imagePreviewError, setImagePreviewError] = useState(false)
   const [sortOrder, setSortOrder] = useState("")
   const [isActive, setIsActive] = useState(true)
 
@@ -86,6 +87,10 @@ export default function AdminCategoriesPage() {
     setSortOrder(String(next))
   }, [categories, sortOrder, editingCategory])
 
+  useEffect(() => {
+    setImagePreviewError(false)
+  }, [imageUrl])
+
   const parsed = useMemo(() => {
     const normalizedSlug = slugify(slug)
     const sortOrderNumber = Number.isFinite(Number(sortOrder))
@@ -105,6 +110,7 @@ export default function AdminCategoriesPage() {
     setSlug("")
     setDescription("")
     setImageUrl("")
+    setImagePreviewError(false)
     setSortOrder("")
     setIsActive(true)
     setEditingCategory(null)
@@ -112,7 +118,6 @@ export default function AdminCategoriesPage() {
   }
 
   const openCreate = () => {
-    setEditingCategory(null)
     resetForm()
     setIsSheetOpen(true)
   }
@@ -124,6 +129,7 @@ export default function AdminCategoriesPage() {
     setSlug(category.slug)
     setDescription(category.description ?? "")
     setImageUrl(category.imageUrl ?? "")
+    setImagePreviewError(false)
     setSortOrder(String(category.sortOrder))
     setIsActive(category.isActive)
     setIsSheetOpen(true)
@@ -190,8 +196,14 @@ export default function AdminCategoriesPage() {
       await removeCategory({ id })
       toast.success("Category deleted")
     } catch (err) {
+      console.error("Failed to delete category:", err)
       toast.error("Failed to delete category")
     }
+  }
+
+  const handleFormSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    onSubmit()
   }
 
   if (!categories) {
@@ -287,13 +299,22 @@ export default function AdminCategoriesPage() {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button variant="ghost" size="icon" onClick={() => startEditing(c)} className="h-8 w-8 text-gray-500 hover:text-[#1d4ed8] hover:bg-blue-50">
+                      <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => startEditing(c)}
+                          className="h-8 w-8 text-gray-500 hover:text-[#1d4ed8] hover:bg-blue-50 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#1d4ed8]/60"
+                        >
                           <Pencil className="h-4 w-4" />
                         </Button>
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-500 hover:text-red-600 hover:bg-red-50">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-gray-500 hover:text-red-600 hover:bg-red-50 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-red-600/60"
+                            >
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </AlertDialogTrigger>
@@ -330,93 +351,105 @@ export default function AdminCategoriesPage() {
             </SheetTitle>
           </SheetHeader>
 
-          <ScrollArea className="h-[calc(100vh-180px)] pr-4">
-            <div className="flex flex-col gap-6 pb-20">
-              {error && (
-                <Alert variant="destructive">
-                  <AlertTitle>Error</AlertTitle>
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
-
-              {/* Core Info */}
-              <div className="space-y-4">
-                <div className="grid gap-2">
-                  <Label>Name</Label>
-                  <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Category Name" />
-                </div>
-                <div className="grid gap-2">
-                  <Label>Slug</Label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">/</span>
-                    <Input
-                      value={slug}
-                      onChange={(e) => setSlug(e.target.value)}
-                      className="pl-6 font-mono text-sm"
-                      placeholder="category-slug"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Description */}
-              <div className="grid gap-2">
-                <Label>Description</Label>
-                <Textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  className="h-24"
-                  placeholder="Describe this category..."
-                />
-              </div>
-
-              {/* Image URL */}
-              <div className="grid gap-2">
-                <Label>Image URL (optional)</Label>
-                <Input
-                  value={imageUrl}
-                  onChange={(e) => setImageUrl(e.target.value)}
-                  placeholder="https://example.com/image.jpg"
-                />
-                {imageUrl && (
-                  <div className="mt-2 rounded-lg border overflow-hidden">
-                    <img src={imageUrl} alt="Preview" className="w-full h-32 object-cover" onError={(e) => {
-                      e.currentTarget.style.display = 'none'
-                    }} />
-                  </div>
+          <form onSubmit={handleFormSubmit} className="relative">
+            <ScrollArea className="h-[calc(100vh-180px)] pr-4">
+              <div className="flex flex-col gap-6 pb-20">
+                {error && (
+                  <Alert variant="destructive">
+                    <AlertTitle>Error</AlertTitle>
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
                 )}
-              </div>
 
-              {/* Sort Order & Status */}
-              <div className="grid grid-cols-2 gap-4">
+                {/* Core Info */}
+                <div className="space-y-4">
+                  <div className="grid gap-2">
+                    <Label>Name</Label>
+                    <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Category Name" />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label>Slug</Label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">/</span>
+                      <Input
+                        value={slug}
+                        onChange={(e) => setSlug(e.target.value)}
+                        className="pl-6 font-mono text-sm"
+                        placeholder="category-slug"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Description */}
                 <div className="grid gap-2">
-                  <Label>Sort Order</Label>
-                  <Input
-                    value={sortOrder}
-                    onChange={(e) => setSortOrder(e.target.value)}
-                    type="number"
-                    placeholder="1"
+                  <Label>Description</Label>
+                  <Textarea
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    className="h-24"
+                    placeholder="Describe this category..."
                   />
                 </div>
+
+                {/* Image URL */}
                 <div className="grid gap-2">
-                  <Label>Status</Label>
-                  <div className="flex items-center gap-2 h-10 border rounded-md px-3 bg-white">
-                    <Switch checked={isActive} onCheckedChange={setIsActive} />
-                    <span className="text-sm font-medium text-gray-600">{isActive ? "Active" : "Hidden"}</span>
+                  <Label>Image URL (optional)</Label>
+                  <Input
+                    value={imageUrl}
+                    onChange={(e) => setImageUrl(e.target.value)}
+                    placeholder="https://example.com/image.jpg"
+                  />
+                  {imageUrl && (
+                    <div className="mt-2 rounded-lg border overflow-hidden bg-gray-50">
+                      {!imagePreviewError ? (
+                        <img
+                          src={imageUrl}
+                          alt="Preview"
+                          className="w-full h-32 object-cover"
+                          onError={() => setImagePreviewError(true)}
+                        />
+                      ) : (
+                        <div className="flex h-32 flex-col items-center justify-center gap-1 text-xs text-gray-500">
+                          <ImageIcon className="h-5 w-5 text-gray-400" />
+                          <span>Could not load preview</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Sort Order & Status */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label>Sort Order</Label>
+                    <Input
+                      value={sortOrder}
+                      onChange={(e) => setSortOrder(e.target.value)}
+                      type="number"
+                      placeholder="1"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label>Status</Label>
+                    <div className="flex items-center gap-2 h-10 border rounded-md px-3 bg-white">
+                      <Switch checked={isActive} onCheckedChange={setIsActive} />
+                      <span className="text-sm font-medium text-gray-600">{isActive ? "Active" : "Hidden"}</span>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          </ScrollArea>
+            </ScrollArea>
 
-          {/* Footer Actions */}
-          <div className="absolute bottom-0 left-0 right-0 bg-white border-t p-4 flex gap-3">
-            <Button variant="outline" className="flex-1" onClick={() => setIsSheetOpen(false)}>Cancel</Button>
-            <Button className="flex-1 bg-[#1d4ed8]" onClick={onSubmit} disabled={isSaving}>
-              {isSaving && <Spinner className="mr-2 h-4 w-4" />}
-              {editingCategory ? "Save Changes" : "Create Category"}
-            </Button>
-          </div>
+            {/* Footer Actions */}
+            <div className="absolute bottom-0 left-0 right-0 bg-white border-t p-4 flex gap-3">
+              <Button variant="outline" type="button" className="flex-1" onClick={() => setIsSheetOpen(false)}>Cancel</Button>
+              <Button type="submit" className="flex-1 bg-[#1d4ed8]" disabled={isSaving}>
+                {isSaving && <Spinner className="mr-2 h-4 w-4" />}
+                {editingCategory ? "Save Changes" : "Create Category"}
+              </Button>
+            </div>
+          </form>
         </SheetContent>
       </Sheet>
     </div>

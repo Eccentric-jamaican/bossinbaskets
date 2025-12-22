@@ -1,12 +1,12 @@
 "use client"
 
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent } from "react"
 import { useMutation, useQuery } from "convex/react"
 import { Pencil, Trash2, Package, Plus, Search } from "lucide-react"
 import { toast } from "sonner"
 
 import { api } from "@/convex/_generated/api"
-import type { Id } from "@/convex/_generated/dataModel"
+import type { Doc, Id } from "@/convex/_generated/dataModel"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { cn } from "@/lib/utils"
 import {
@@ -62,24 +62,7 @@ function slugify(input: string) {
     .replace(/(^-|-$)/g, "")
 }
 
-type AdminProduct = {
-  _id: Id<"products">
-  name: string
-  slug: string
-  description: string
-  shortDescription?: string
-  price: number
-  compareAtPrice?: number
-  categoryId: Id<"categories">
-  images: string[]
-  isFeatured: boolean
-  isActive: boolean
-  inventory: number
-  tags: string[]
-  allowCustomNote: boolean
-  metaTitle?: string
-  metaDescription?: string
-}
+type AdminProduct = Doc<"products">
 
 function formatCents(cents: number) {
   return new Intl.NumberFormat("en-US", {
@@ -90,16 +73,14 @@ function formatCents(cents: number) {
 
 export default function AdminProductsPage() {
   const categories = useQuery(api.categories.listAll)
-  const products = useQuery((api as any).products.listAllAdmin, {
+  const products = useQuery(api.products.listAllAdmin, {
     limit: 200,
-  }) as AdminProduct[] | undefined
+  })
   const createProduct = useMutation(api.products.create)
   const updateProduct = useMutation(api.products.update)
   const removeProduct = useMutation(api.products.remove)
-  const generateUploadUrl = useMutation((api as any).products.generateUploadUrl) as any
-  const getUrlForStorageId = useMutation(
-    (api as any).products.getUrlForStorageId
-  ) as any
+  const generateUploadUrl = useMutation(api.products.generateUploadUrl)
+  const getUrlForStorageId = useMutation(api.products.getUrlForStorageId)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -118,7 +99,6 @@ export default function AdminProductsPage() {
   const [imagesCsv, setImagesCsv] = useState("")
   const [uploadedImageUrls, setUploadedImageUrls] = useState<string[]>([])
   const [isUploadingImages, setIsUploadingImages] = useState(false)
-  const [isDragActive, setIsDragActive] = useState(false)
   const [imageUploadError, setImageUploadError] = useState<string | null>(null)
   const [tagsCsv, setTagsCsv] = useState("")
   const [isFeatured, setIsFeatured] = useState(false)
@@ -132,7 +112,6 @@ export default function AdminProductsPage() {
 
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState<string | null>(null)
 
   useEffect(() => {
     if (!isSlugManual) setSlug(slugify(name))
@@ -209,7 +188,6 @@ export default function AdminProductsPage() {
     setMetaTitle("")
     setMetaDescription("")
     setError(null)
-    setSuccess(null)
   }
 
   const openCreate = () => {
@@ -220,8 +198,9 @@ export default function AdminProductsPage() {
 
   const startEditing = (product: AdminProduct) => {
     setError(null)
-    setSuccess(null)
 
+    // Slug is considered "manual" when it isn't the auto-generated single-character placeholder.
+    // This mirrors legacy behavior until we persist an explicit flag.
     const nextIsSlugManual = !(
       product.slug.length === 1 && slugify(product.name).length > 1
     )
@@ -304,7 +283,6 @@ export default function AdminProductsPage() {
 
   const onSave = async () => {
     setError(null)
-    setSuccess(null)
 
     if (!name.trim()) {
       setError("Name is required")
@@ -549,14 +527,29 @@ export default function AdminProductsPage() {
                       </div>
                     </TableCell>
                     <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button variant="ghost" size="icon" onClick={() => startEditing(p)} className="h-8 w-8 text-gray-500 hover:text-[#1d4ed8] hover:bg-blue-50">
+                      <div className="flex items-center justify-end gap-1 opacity-50 group-hover:opacity-100 group-focus-within:opacity-100 focus-within:opacity-100 transition-opacity">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => startEditing(p)}
+                          className="h-8 w-8 text-gray-500 hover:text-[#1d4ed8] hover:bg-blue-50 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#1d4ed8]/70"
+                        >
                           <Pencil className="h-4 w-4" />
                         </Button>
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-500 hover:text-red-600 hover:bg-red-50">
-                              <Trash2 className="h-4 w-4" />
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-gray-500 hover:text-red-600 hover:bg-red-50 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-red-600/70"
+                              disabled={deleteId === p._id}
+                              aria-busy={deleteId === p._id}
+                            >
+                              {deleteId === p._id ? (
+                                <Spinner className="h-4 w-4 text-red-500" />
+                              ) : (
+                                <Trash2 className="h-4 w-4" />
+                              )}
                             </Button>
                           </AlertDialogTrigger>
                           <AlertDialogContent>
@@ -569,7 +562,13 @@ export default function AdminProductsPage() {
                             </AlertDialogHeader>
                             <AlertDialogFooter>
                               <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => onDelete(p._id)} className="bg-red-600 hover:bg-red-700">Delete</AlertDialogAction>
+                              <AlertDialogAction
+                                onClick={() => onDelete(p._id)}
+                                className="bg-red-600 hover:bg-red-700"
+                                disabled={deleteId === p._id}
+                              >
+                                {deleteId === p._id ? "Deleting..." : "Delete"}
+                              </AlertDialogAction>
                             </AlertDialogFooter>
                           </AlertDialogContent>
                         </AlertDialog>
@@ -590,10 +589,31 @@ export default function AdminProductsPage() {
             <SheetTitle className="text-2xl font-serif text-[#002684]">
               {editingId ? "Edit Product" : "New Product"}
             </SheetTitle>
+            <SheetDescription className="text-sm-fluid text-muted-foreground">
+              {editingId
+                ? `Update details for ${name || "this product"}.`
+                : "Create or edit product details."}
+            </SheetDescription>
           </SheetHeader>
 
-          <ScrollArea className="h-[calc(100vh-180px)] pr-4">
-            <div className="flex flex-col gap-6 pb-20">
+          <ScrollArea
+            className="pr-4"
+            style={
+              {
+                "--sheet-content-offset": "180px",
+                height: "calc(100vh - var(--sheet-content-offset))",
+              } as CSSProperties
+            }
+          >
+            <div
+              className="flex flex-col gap-6"
+              style={
+                {
+                  "--sheet-content-bottom-padding": "5rem",
+                  paddingBottom: "var(--sheet-content-bottom-padding)",
+                } as CSSProperties
+              }
+            >
               {error && (
                 <Alert variant="destructive">
                   <AlertTitle>Error</AlertTitle>

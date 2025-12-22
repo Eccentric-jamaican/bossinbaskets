@@ -88,6 +88,15 @@ const STATUS_CONFIG: Record<OrderStatus, { label: string; color: string; icon: R
   cancelled: { label: "Cancelled", color: "bg-red-100 text-red-800", icon: Ban },
 }
 
+const STATUS_BADGE_STYLES: Record<OrderStatus, string> = {
+  pending: "bg-yellow-50 text-yellow-700 border-yellow-200",
+  confirmed: "bg-blue-50 text-blue-700 border-blue-200",
+  processing: "bg-purple-50 text-purple-700 border-purple-200",
+  shipped: "bg-indigo-50 text-indigo-700 border-indigo-200",
+  delivered: "bg-green-50 text-green-700 border-green-200",
+  cancelled: "bg-red-50 text-red-700 border-red-200",
+}
+
 const KANBAN_COLUMNS: OrderStatus[] = ["pending", "confirmed", "processing", "shipped", "delivered", "cancelled"]
 
 function formatCents(cents: number) {
@@ -102,6 +111,16 @@ function formatDate(timestamp: number) {
     hour: "numeric",
     minute: "2-digit",
   })
+}
+
+const shortDateFormatter = new Intl.DateTimeFormat("en-US", {
+  month: "short",
+  day: "numeric",
+  year: "numeric",
+})
+
+function formatShortDate(timestamp: number) {
+  return shortDateFormatter.format(new Date(timestamp))
 }
 
 // Compact Premium Order Card
@@ -124,11 +143,14 @@ function OrderCard({ order, onClick }: { order: Order; onClick: () => void }) {
       className="group flex flex-col gap-2 rounded-lg bg-white p-2.5 shadow-sm ring-1 ring-gray-950/5 transition-all hover:shadow-md active:scale-[0.98]"
     >
       <div className="flex items-center justify-between gap-2">
-        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider truncate" title={order.orderNumber}>
-          {order.orderNumber.length > 10 ? `#${order.orderNumber.slice(-6)}` : order.orderNumber}
+        <span
+          className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider truncate max-w-[120px]"
+          title={order.orderNumber}
+        >
+          #{order.orderNumber}
         </span>
         <span className="text-[10px] font-medium text-muted-foreground whitespace-nowrap">
-          {formatDate(order._creationTime).split(",")[0]}
+          {formatShortDate(order._creationTime)}
         </span>
       </div>
 
@@ -157,7 +179,7 @@ function OrderCard({ order, onClick }: { order: Order; onClick: () => void }) {
       </div>
 
       <div className="flex items-center justify-between pt-1.5 border-t border-gray-100 mt-0.5">
-        <Badge variant="outline" className={`border-0 px-1.5 py-0 h-4 text-[10px] capitalize ${STATUS_CONFIG[order.status].color.replace("text-", "bg-opacity-20 text-").replace("bg-", "bg-")}`}>
+        <Badge variant="outline" className={`px-1.5 py-0 h-4 text-[10px] capitalize ${STATUS_BADGE_STYLES[order.status]}`}>
           {STATUS_CONFIG[order.status].label}
         </Badge>
         <span className="text-xs font-bold text-gray-900">{formatCents(order.total)}</span>
@@ -516,7 +538,7 @@ export default function AdminOrdersPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex min-h-screen flex-col gap-6">
       {/* Header */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div className="flex flex-col gap-2">
@@ -581,140 +603,142 @@ export default function AdminOrdersPage() {
         })}
       </div>
 
-      {/* Kanban View */}
-      {viewMode === "kanban" && (
-        <div className="h-[calc(100vh-200px)] overflow-x-auto pb-2">
-          <div className="flex h-full gap-4 px-1 min-w-max">
-            {KANBAN_COLUMNS.map((status) => {
-              const config = STATUS_CONFIG[status]
-              const orders = ordersGrouped[status].filter(
-                (order) =>
-                  order.orderNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                  order.shippingAddress.recipientName.toLowerCase().includes(searchQuery.toLowerCase())
-              )
+      <div className="flex flex-1 min-h-0">
+        {/* Kanban View */}
+        {viewMode === "kanban" && (
+          <div className="flex-1 min-h-0 overflow-x-auto pb-2">
+            <div className="flex h-full gap-4 px-1 min-w-max">
+              {KANBAN_COLUMNS.map((status) => {
+                const config = STATUS_CONFIG[status]
+                const orders = ordersGrouped[status].filter(
+                  (order) =>
+                    order.orderNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    order.shippingAddress.recipientName.toLowerCase().includes(searchQuery.toLowerCase())
+                )
 
-              return (
-                <div key={status} className="flex flex-col w-64 shrink-0 h-full">
-                  {/* Column Header */}
-                  <div className="flex items-center justify-between mb-2 px-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-semibold text-gray-700 uppercase tracking-wide">{config.label}</span>
-                      <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-gray-100 px-1.5 text-[10px] font-bold text-gray-600">
-                        {orders.length}
-                      </span>
+                return (
+                  <div key={status} className="flex flex-col w-64 shrink-0 h-full">
+                    {/* Column Header */}
+                    <div className="flex items-center justify-between mb-2 px-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-semibold text-gray-700 uppercase tracking-wide">{config.label}</span>
+                        <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-gray-100 px-1.5 text-[10px] font-bold text-gray-600">
+                          {orders.length}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Column Content */}
+                    <div className="flex-1 rounded-lg bg-gray-50/50 p-2 ring-1 ring-gray-200/50">
+                      <ScrollArea className="h-full">
+                        <div className="flex flex-col gap-2 pr-2 pb-2">
+                          {orders.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center py-8 text-center opacity-40">
+                              <Package className="h-6 w-6 mb-1" />
+                              <p className="text-[10px] font-medium uppercase tracking-wide">Empty</p>
+                            </div>
+                          ) : (
+                            orders.map((order) => (
+                              <OrderCard
+                                key={String(order._id)}
+                                order={order}
+                                onClick={() => setSelectedOrderId(order._id)}
+                              />
+                            ))
+                          )}
+                        </div>
+                      </ScrollArea>
                     </div>
                   </div>
-
-                  {/* Column Content */}
-                  <div className="flex-1 rounded-lg bg-gray-50/50 p-2 ring-1 ring-gray-200/50">
-                    <ScrollArea className="h-full">
-                      <div className="flex flex-col gap-2 pr-2 pb-2">
-                        {orders.length === 0 ? (
-                          <div className="flex flex-col items-center justify-center py-8 text-center opacity-40">
-                            <Package className="h-6 w-6 mb-1" />
-                            <p className="text-[10px] font-medium uppercase tracking-wide">Empty</p>
-                          </div>
-                        ) : (
-                          orders.map((order) => (
-                            <OrderCard
-                              key={String(order._id)}
-                              order={order}
-                              onClick={() => setSelectedOrderId(order._id)}
-                            />
-                          ))
-                        )}
-                      </div>
-                    </ScrollArea>
-                  </div>
-                </div>
-              )
-            })}
+                )
+              })}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Table View */}
-      {viewMode === "table" && (
-        <Card className="rounded-2xl overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-[#002684]/5">
-                <tr>
-                  <th className="text-left p-4 text-sm-fluid font-semibold text-[#002684]">Order</th>
-                  <th className="text-left p-4 text-sm-fluid font-semibold text-[#002684]">Customer</th>
-                  <th className="text-left p-4 text-sm-fluid font-semibold text-[#002684]">Status</th>
-                  <th className="text-left p-4 text-sm-fluid font-semibold text-[#002684]">Payment</th>
-                  <th className="text-left p-4 text-sm-fluid font-semibold text-[#002684]">Total</th>
-                  <th className="text-left p-4 text-sm-fluid font-semibold text-[#002684]">Date</th>
-                  <th className="text-left p-4 text-sm-fluid font-semibold text-[#002684]">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredOrders.length === 0 ? (
+        {/* Table View */}
+        {viewMode === "table" && (
+          <Card className="flex-1 rounded-2xl overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-[#002684]/5">
                   <tr>
-                    <td colSpan={7} className="text-center py-12 text-[#002684]/50">
-                      No orders found
-                    </td>
+                    <th className="text-left p-4 text-sm-fluid font-semibold text-[#002684]">Order</th>
+                    <th className="text-left p-4 text-sm-fluid font-semibold text-[#002684]">Customer</th>
+                    <th className="text-left p-4 text-sm-fluid font-semibold text-[#002684]">Status</th>
+                    <th className="text-left p-4 text-sm-fluid font-semibold text-[#002684]">Payment</th>
+                    <th className="text-left p-4 text-sm-fluid font-semibold text-[#002684]">Total</th>
+                    <th className="text-left p-4 text-sm-fluid font-semibold text-[#002684]">Date</th>
+                    <th className="text-left p-4 text-sm-fluid font-semibold text-[#002684]">Actions</th>
                   </tr>
-                ) : (
-                  filteredOrders.map((order) => {
-                    const StatusIcon = STATUS_CONFIG[order.status].icon
-                    return (
-                      <tr key={String(order._id)} className="border-t hover:bg-[#002684]/5">
-                        <td className="p-4">
-                          <span className="text-body font-medium text-[#002684]">{order.orderNumber}</span>
-                        </td>
-                        <td className="p-4">
-                          <span className="text-body text-[#002684]">{order.shippingAddress.recipientName}</span>
-                        </td>
-                        <td className="p-4">
-                          <Badge className={`${STATUS_CONFIG[order.status].color} flex items-center gap-1 w-fit`}>
-                            <StatusIcon className="h-3 w-3" />
-                            {STATUS_CONFIG[order.status].label}
-                          </Badge>
-                        </td>
-                        <td className="p-4">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm-fluid text-[#002684]">
-                              {order.paymentMethod === "bank_transfer" ? "Bank" : "COD"}
-                            </span>
-                            <Badge
-                              className={
-                                order.paymentStatus === "paid"
-                                  ? "bg-green-100 text-green-800"
-                                  : "bg-yellow-100 text-yellow-800"
-                              }
-                            >
-                              {order.paymentStatus}
+                </thead>
+                <tbody>
+                  {filteredOrders.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="text-center py-12 text-[#002684]/50">
+                        No orders found
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredOrders.map((order) => {
+                      const StatusIcon = STATUS_CONFIG[order.status].icon
+                      return (
+                        <tr key={String(order._id)} className="border-t hover:bg-[#002684]/5">
+                          <td className="p-4">
+                            <span className="text-body font-medium text-[#002684]">{order.orderNumber}</span>
+                          </td>
+                          <td className="p-4">
+                            <span className="text-body text-[#002684]">{order.shippingAddress.recipientName}</span>
+                          </td>
+                          <td className="p-4">
+                            <Badge className={`${STATUS_CONFIG[order.status].color} flex items-center gap-1 w-fit`}>
+                              <StatusIcon className="h-3 w-3" />
+                              {STATUS_CONFIG[order.status].label}
                             </Badge>
-                          </div>
-                        </td>
-                        <td className="p-4">
-                          <span className="text-body font-semibold text-[#002684]">{formatCents(order.total)}</span>
-                        </td>
-                        <td className="p-4">
-                          <span className="text-sm-fluid text-[#002684]/70">{formatDate(order._creationTime)}</span>
-                        </td>
-                        <td className="p-4">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setSelectedOrderId(order._id)}
-                            className="h-10 min-h-[44px]"
-                          >
-                            <Eye className="h-4 w-4 mr-1" />
-                            View
-                          </Button>
-                        </td>
-                      </tr>
-                    )
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
-        </Card>
-      )}
+                          </td>
+                          <td className="p-4">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm-fluid text-[#002684]">
+                                {order.paymentMethod === "bank_transfer" ? "Bank" : "COD"}
+                              </span>
+                              <Badge
+                                className={
+                                  order.paymentStatus === "paid"
+                                    ? "bg-green-100 text-green-800"
+                                    : "bg-yellow-100 text-yellow-800"
+                                }
+                              >
+                                {order.paymentStatus}
+                              </Badge>
+                            </div>
+                          </td>
+                          <td className="p-4">
+                            <span className="text-body font-semibold text-[#002684]">{formatCents(order.total)}</span>
+                          </td>
+                          <td className="p-4">
+                            <span className="text-sm-fluid text-[#002684]/70">{formatDate(order._creationTime)}</span>
+                          </td>
+                          <td className="p-4">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setSelectedOrderId(order._id)}
+                              className="h-10 min-h-[44px]"
+                            >
+                              <Eye className="h-4 w-4 mr-1" />
+                              View
+                            </Button>
+                          </td>
+                        </tr>
+                      )
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+        )}
+      </div>
 
       {/* Order Details Dialog */}
       <OrderDetailsDialog

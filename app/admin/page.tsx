@@ -10,6 +10,7 @@ import {
 } from "lucide-react"
 
 import { api } from "@/convex/_generated/api"
+import { Doc } from "@/convex/_generated/dataModel"
 import { cn } from "@/lib/utils"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
@@ -38,36 +39,21 @@ function formatDate(timestamp: number) {
   })
 }
 
-function getStatusBadgeVariant(status: string) {
-  switch (status) {
-    case "completed":
-    case "delivered":
-      return "default"
-    case "pending":
-    case "processing":
-      return "secondary"
-    case "cancelled":
-      return "destructive"
-    default:
-      return "outline"
-  }
-}
-
 export default function AdminDashboardPage() {
   // Use proper pagination for orders
   const ordersResult = useQuery(api.orders.listAll, {
-    paginationOpts: { cursor: null, numItems: 10 },
+    paginationOpts: { cursor: null, numItems: 5 },
   })
-  const orders = ordersResult?.page
+  const orders = ordersResult?.page as Doc<"orders">[] | undefined
 
   // Get counts from dedicated query
   const statusCounts = useQuery(api.orders.getStatusCounts)
-  const products = useQuery((api as any).products.listAllAdmin, { limit: 100 })
+  const products = useQuery(api.products.listAllAdmin, { limit: 100 })
 
   // Calculate metrics
   const totalOrders = statusCounts?.total ?? 0
   const pendingOrders = (statusCounts?.pending ?? 0) + (statusCounts?.processing ?? 0)
-  const totalRevenue = orders?.reduce((sum: number, o: any) => sum + (o.total ?? 0), 0) ?? 0
+  const recentOrdersRevenue = orders?.reduce((sum: number, order: Doc<"orders">) => sum + (order.total ?? 0), 0) ?? 0
 
   const isLoading = orders === undefined || statusCounts === undefined
 
@@ -85,7 +71,7 @@ export default function AdminDashboardPage() {
 
       {/* KPI Cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {/* Total Revenue */}
+        {/* Recent Orders Revenue */}
         <Card className="rounded-2xl border-0 bg-white shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50">
@@ -93,12 +79,12 @@ export default function AdminDashboardPage() {
             </div>
           </CardHeader>
           <CardContent className="pt-0">
-            <p className="text-sm text-muted-foreground">Total Revenue</p>
+            <p className="text-sm text-muted-foreground">Recent Orders Revenue</p>
             {isLoading ? (
               <Skeleton className="mt-1 h-8 w-24" />
             ) : (
               <p className="text-2xl font-bold text-gray-900">
-                {formatCurrency(totalRevenue)}
+                {formatCurrency(recentOrdersRevenue)}
               </p>
             )}
           </CardContent>
@@ -185,7 +171,7 @@ export default function AdminDashboardPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {orders.slice(0, 5).map((order: any) => (
+                  {orders.slice(0, 5).map((order: Doc<"orders">) => (
                     <TableRow key={order._id}>
                       <TableCell className="font-medium">
                         #{String(order._id).slice(-6).toUpperCase()}
