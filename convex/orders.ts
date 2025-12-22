@@ -370,12 +370,16 @@ export const listAll = query({
   returns: v.object({
     page: v.array(orderValidator),
     isDone: v.boolean(),
-    continueCursor: v.string(),
+    continueCursor: v.union(v.string(), v.null()),
+    pageStatus: v.optional(
+      v.union(v.literal("SplitRecommended"), v.literal("SplitRequired"), v.null())
+    ),
+    splitCursor: v.optional(v.union(v.string(), v.null())),
   }),
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
-      return { page: [], isDone: true, continueCursor: "" };
+      return { page: [], isDone: true, continueCursor: null, pageStatus: null, splitCursor: null };
     }
 
     const user = await ctx.db
@@ -384,7 +388,7 @@ export const listAll = query({
       .unique();
 
     if (!user || user.role !== "admin") {
-      return { page: [], isDone: true, continueCursor: "" };
+      return { page: [], isDone: true, continueCursor: null, pageStatus: null, splitCursor: null };
     }
 
     if (args.status) {
@@ -393,14 +397,26 @@ export const listAll = query({
         .withIndex("by_status", (q) => q.eq("status", args.status!))
         .order("desc")
         .paginate(args.paginationOpts);
-      return result;
+      return {
+        page: result.page,
+        isDone: result.isDone,
+        continueCursor: result.continueCursor,
+        pageStatus: result.pageStatus ?? null,
+        splitCursor: result.splitCursor ?? null,
+      };
     }
 
     const result = await ctx.db
       .query("orders")
       .order("desc")
       .paginate(args.paginationOpts);
-    return result;
+    return {
+      page: result.page,
+      isDone: result.isDone,
+      continueCursor: result.continueCursor,
+      pageStatus: result.pageStatus ?? null,
+      splitCursor: result.splitCursor ?? null,
+    };
   },
 });
 
