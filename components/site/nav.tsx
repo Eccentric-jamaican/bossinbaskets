@@ -1,5 +1,6 @@
 "use client"
 
+import Image from "next/image"
 import Link from "next/link"
 import { useClerk, useUser } from "@clerk/nextjs"
 import { useMutation, useQuery } from "convex/react"
@@ -104,8 +105,19 @@ export default function Nav() {
                 </SheetContent>
               </Sheet>
 
-              <Link href="/" className="text-h3 font-bold leading-tight text-[#002684]">
-                BossinBaskets
+              <Link
+                href="/"
+                className="relative flex items-center"
+                aria-label="BossinBaskets home"
+              >
+                <Image
+                  src="/nav/BossinBaskets.svg"
+                  alt="BossinBaskets"
+                  width={190}
+                  height={22}
+                  priority
+                  className="h-6 w-auto md:h-8"
+                />
               </Link>
 
               {currentUser && isAdmin && (
