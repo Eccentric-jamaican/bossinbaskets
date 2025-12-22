@@ -267,6 +267,76 @@ export const listAllAdmin = query({
   },
 });
 
+export const listAllAdminPaginated = query({
+  args: {
+    paginationOpts: paginationOptsValidator,
+    searchTerm: v.optional(v.string()),
+  },
+  returns: v.object({
+    page: v.array(productValidator),
+    isDone: v.boolean(),
+    continueCursor: v.union(v.string(), v.null()),
+    pageStatus: v.optional(
+      v.union(v.literal("SplitRecommended"), v.literal("SplitRequired"), v.null())
+    ),
+    splitCursor: v.optional(v.union(v.string(), v.null())),
+  }),
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx);
+    const searchTerm = args.searchTerm?.trim().toLowerCase() ?? "";
+    if (searchTerm) {
+      const matches = await ctx.db.query("products").order("desc").take(500);
+      const filtered = matches.filter((product) => {
+        const name = product.name.toLowerCase();
+        const slug = product.slug.toLowerCase();
+        return name.includes(searchTerm) || slug.includes(searchTerm);
+      });
+      const pageSize = args.paginationOpts.numItems ?? 20;
+      const page = filtered.slice(0, pageSize);
+      const hasMore = filtered.length > pageSize;
+      return {
+        page,
+        isDone: !hasMore,
+        continueCursor: null,
+        pageStatus: null,
+        splitCursor: null,
+      };
+    }
+    const result = await ctx.db.query("products").order("desc").paginate(args.paginationOpts);
+    return result;
+  },
+});
+
+export const searchAdmin = query({
+  args: {
+    searchTerm: v.string(),
+  },
+  returns: v.array(productValidator),
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx);
+    const term = args.searchTerm.trim().toLowerCase();
+    if (!term) return [];
+    const matches = await ctx.db.query("products").order("desc").take(500);
+    return matches
+      .filter((product) => {
+        const name = product.name.toLowerCase();
+        const slug = product.slug.toLowerCase();
+        return name.includes(term) || slug.includes(term);
+      })
+      .slice(0, 100);
+  },
+});
+
+export const getProductCount = query({
+  args: {},
+  returns: v.number(),
+  handler: async (ctx) => {
+    await requireAdmin(ctx);
+    const count = await ctx.db.query("products").collect();
+    return count.length;
+  },
+});
+
 export const generateUploadUrl = mutation({
   args: {},
   returns: v.string(),

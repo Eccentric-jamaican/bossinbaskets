@@ -73,8 +73,13 @@ function formatCents(cents: number) {
 
 export default function AdminProductsPage() {
   const categories = useQuery(api.categories.listAll)
-  const products = useQuery(api.products.listAllAdmin, {
-    limit: 200,
+  const [cursorHistory, setCursorHistory] = useState<(string | null)[]>([null])
+  const paginationCursor = cursorHistory[cursorHistory.length - 1]
+  const [searchQuery, setSearchQuery] = useState("")
+  const [debouncedSearch, setDebouncedSearch] = useState("")
+  const productsResult = useQuery(api.products.listAllAdminPaginated, {
+    paginationOpts: { cursor: paginationCursor, numItems: 20 },
+    searchTerm: debouncedSearch || undefined,
   })
   const createProduct = useMutation(api.products.create)
   const updateProduct = useMutation(api.products.update)
@@ -85,7 +90,6 @@ export default function AdminProductsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [isSheetOpen, setIsSheetOpen] = useState(false)
-  const [searchQuery, setSearchQuery] = useState("")
 
   const [name, setName] = useState("")
   const [slug, setSlug] = useState("")
@@ -122,6 +126,17 @@ export default function AdminProductsPage() {
       setCategoryId(String(categories[0]._id))
     }
   }, [categories, categoryId])
+
+  useEffect(() => {
+    const id = window.setTimeout(() => {
+      setDebouncedSearch(searchQuery.trim())
+    }, 300)
+    return () => window.clearTimeout(id)
+  }, [searchQuery])
+
+  useEffect(() => {
+    setCursorHistory([null])
+  }, [debouncedSearch])
 
   const parsed = useMemo(() => {
     const imagesFromCsv = imagesCsv
@@ -392,15 +407,9 @@ export default function AdminProductsPage() {
   }
 
   // Filtered products
-  const filteredProducts = useMemo(() => {
-    if (!products) return []
-    if (!searchQuery) return products
-    const q = searchQuery.toLowerCase()
-    return products.filter(p =>
-      p.name.toLowerCase().includes(q) ||
-      p.slug.toLowerCase().includes(q)
-    )
-  }, [products, searchQuery])
+  const products = productsResult?.page as AdminProduct[] | undefined
+
+  const filteredProducts = useMemo(() => products ?? [], [products])
 
   if (!products) {
     return (
@@ -579,6 +588,36 @@ export default function AdminProductsPage() {
               )}
             </TableBody>
           </Table>
+        </div>
+        <div className="flex items-center justify-between border-t border-gray-100 bg-gray-50/50 px-4 py-3 text-sm text-gray-600">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={cursorHistory.length <= 1}
+            onClick={() => {
+              if (cursorHistory.length > 1) {
+                setCursorHistory(prev => prev.slice(0, -1))
+              }
+            }}
+          >
+            Previous
+          </Button>
+          <span>
+            Showing {filteredProducts.length} item{filteredProducts.length === 1 ? "" : "s"}
+            {debouncedSearch && productsResult?.isDone ? ` for “${debouncedSearch}”` : ""}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={productsResult?.isDone || !productsResult?.continueCursor}
+            onClick={() => {
+              if (productsResult?.continueCursor) {
+                setCursorHistory(prev => [...prev, productsResult.continueCursor!])
+              }
+            }}
+          >
+            Next
+          </Button>
         </div>
       </Card>
 

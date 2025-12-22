@@ -44,6 +44,9 @@ export function AdminSidebar() {
   const pathname = usePathname()
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false)
 
+  const isNavItemActive = (href: string) =>
+    href === "/admin" ? pathname === "/admin" : pathname.startsWith(href)
+
   const handleNavigate = () => {
     setIsMobileNavOpen(false)
   }
@@ -81,10 +84,7 @@ export function AdminSidebar() {
             </SheetHeader>
             <nav className="flex flex-col gap-1 px-4 py-4">
               {navItems.map((item) => {
-                const isActive =
-                  item.href === "/admin"
-                    ? pathname === "/admin"
-                    : pathname.startsWith(item.href)
+                const isActive = isNavItemActive(item.href)
                 return (
                   <Link
                     key={item.href}
@@ -137,10 +137,7 @@ export function AdminSidebar() {
               <SidebarGroupContent>
                 <SidebarMenu>
                   {navItems.map((item) => {
-                    const isActive =
-                      item.href === "/admin"
-                        ? pathname === "/admin"
-                        : pathname.startsWith(item.href)
+                    const isActive = isNavItemActive(item.href)
                     return (
                       <SidebarMenuItem key={item.href}>
                         <SidebarMenuButton

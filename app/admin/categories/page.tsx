@@ -65,6 +65,7 @@ export default function AdminCategoriesPage() {
   const [description, setDescription] = useState("")
   const [imageUrl, setImageUrl] = useState("")
   const [imagePreviewError, setImagePreviewError] = useState(false)
+  const [tableImageErrors, setTableImageErrors] = useState<Record<string, boolean>>({})
   const [sortOrder, setSortOrder] = useState("")
   const [isActive, setIsActive] = useState(true)
 
@@ -203,7 +204,14 @@ export default function AdminCategoriesPage() {
 
   const handleFormSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    onSubmit()
+    void onSubmit()
+  }
+
+  const handleTableImageError = (id: Id<"categories">) => {
+    setTableImageErrors(prev => ({
+      ...prev,
+      [String(id)]: true,
+    }))
   }
 
   if (!categories) {
@@ -267,8 +275,13 @@ export default function AdminCategoriesPage() {
                   <TableRow key={String(c._id)} className="hover:bg-gray-50/50 border-gray-100 group">
                     <TableCell>
                       <div className="h-12 w-12 rounded-lg bg-gray-100 overflow-hidden border border-gray-200">
-                        {c.imageUrl ? (
-                          <img src={c.imageUrl} alt="" className="h-full w-full object-cover" />
+                        {c.imageUrl && !tableImageErrors[String(c._id)] ? (
+                          <img
+                            src={c.imageUrl}
+                            alt=""
+                            className="h-full w-full object-cover"
+                            onError={() => handleTableImageError(c._id)}
+                          />
                         ) : (
                           <div className="h-full w-full flex items-center justify-center">
                             <ImageIcon className="h-4 w-4 text-gray-300" />
@@ -344,7 +357,7 @@ export default function AdminCategoriesPage() {
 
       {/* Create/Edit Sheet */}
       <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-        <SheetContent className="w-full sm:max-w-xl overflow-y-auto">
+        <SheetContent className="w-full sm:max-w-xl">
           <SheetHeader className="mb-6">
             <SheetTitle className="text-2xl font-serif text-[#002684]">
               {editingCategory ? "Edit Category" : "New Category"}

@@ -1,6 +1,7 @@
+
 "use client"
 
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useMemo, useState, type ChangeEvent } from "react"
 import { useMutation, useQuery } from "convex/react"
 import {
   AlertCircle,
@@ -23,13 +24,18 @@ import { api } from "@/convex/_generated/api"
 import { Id } from "@/convex/_generated/dataModel"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -39,6 +45,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Spinner } from "@/components/ui/spinner"
 import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
 
 type OrderStatus = "pending" | "confirmed" | "processing" | "shipped" | "delivered" | "cancelled"
 type ViewMode = "kanban" | "table"
@@ -97,6 +104,13 @@ const STATUS_BADGE_STYLES: Record<OrderStatus, string> = {
   cancelled: "bg-red-50 text-red-700 border-red-200",
 }
 
+const PAYMENT_STATUS_STYLES: Record<Order["paymentStatus"], string> = {
+  paid: "bg-green-100 text-green-800",
+  failed: "bg-red-100 text-red-800",
+  refunded: "bg-gray-100 text-gray-700",
+  pending: "bg-yellow-100 text-yellow-800",
+}
+
 const KANBAN_COLUMNS: OrderStatus[] = ["pending", "confirmed", "processing", "shipped", "delivered", "cancelled"]
 
 function formatCents(cents: number) {
@@ -113,7 +127,9 @@ function formatDate(timestamp: number) {
   })
 }
 
-const shortDateFormatter = new Intl.DateTimeFormat("en-US", {
+const LOCALE = "en-US"
+
+const shortDateFormatter = new Intl.DateTimeFormat(LOCALE, {
   month: "short",
   day: "numeric",
   year: "numeric",
@@ -126,7 +142,6 @@ function formatShortDate(timestamp: number) {
 // Compact Premium Order Card
 function OrderCard({ order, onClick }: { order: Order; onClick: () => void }) {
   // Get top 3 product images
-  const productImages = order.items.slice(0, 3).map(item => item.productImage)
   const remainingCount = order.items.length > 3 ? order.items.length - 3 : 0
 
   return (
@@ -205,6 +220,7 @@ function OrderDetailsDialog({
   const [trackingNumber, setTrackingNumber] = useState("")
   const [bankRef, setBankRef] = useState("")
   const [isUpdating, setIsUpdating] = useState(false)
+  const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false)
 
   useEffect(() => {
     setTrackingNumber("")
@@ -219,12 +235,10 @@ function OrderDetailsDialog({
     try {
       await updateStatus({ orderId: order._id, status: newStatus })
       toast.success("Order status updated")
-      return true
     } catch (err) {
       toast.error("Failed to update order status", {
         description: err instanceof Error ? err.message : String(err),
       })
-      return false
     } finally {
       setIsUpdating(false)
     }
@@ -266,11 +280,11 @@ function OrderDetailsDialog({
   }
 
   const handleCancel = async () => {
-    if (!confirm("Are you sure you want to cancel this order? This will restore inventory.")) return
     setIsUpdating(true)
     try {
       await cancelOrder({ orderId: order._id })
       toast.success("Order cancelled")
+      setIsCancelDialogOpen(false)
       onClose()
       return true
     } catch (err) {
@@ -321,15 +335,37 @@ function OrderDetailsDialog({
                 </DropdownMenu>
 
                 {["pending", "confirmed"].includes(order.status) && (
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={handleCancel}
-                    disabled={isUpdating}
-                    className="h-10 min-h-[44px]"
-                  >
-                    Cancel Order
-                  </Button>
+                  <AlertDialog open={isCancelDialogOpen} onOpenChange={setIsCancelDialogOpen}>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => setIsCancelDialogOpen(true)}
+                        disabled={isUpdating}
+                        className="h-10 min-h-[44px]"
+                      >
+                        Cancel Order
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Cancel this order?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Cancelling will restore inventory and notify the customer. This action cannot be undone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel disabled={isUpdating}>Keep Order</AlertDialogCancel>
+                        <AlertDialogAction
+                          disabled={isUpdating}
+                          onClick={handleCancel}
+                          className="bg-red-600 hover:bg-red-700"
+                        >
+                          {isUpdating ? "Cancelling..." : "Yes, cancel order"}
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 )}
               </div>
             </div>
@@ -507,16 +543,33 @@ export default function AdminOrdersPage() {
   const [selectedOrderId, setSelectedOrderId] = useState<Id<"orders"> | null>(null)
 
   // Flatten orders for table view
-  const allOrders = ordersGrouped
-    ? [...ordersGrouped.pending, ...ordersGrouped.confirmed, ...ordersGrouped.processing, ...ordersGrouped.shipped, ...ordersGrouped.delivered, ...ordersGrouped.cancelled]
-    : []
+  const allOrders = useMemo(() => {
+    if (!ordersGrouped) return []
+    return [
+      ...ordersGrouped.pending,
+      ...ordersGrouped.confirmed,
+      ...ordersGrouped.processing,
+      ...ordersGrouped.shipped,
+      ...ordersGrouped.delivered,
+      ...ordersGrouped.cancelled,
+    ]
+  }, [ordersGrouped])
+
+  const normalizedSearchQuery = useMemo(() => searchQuery.trim().toLowerCase(), [searchQuery])
+
+  const matchesSearch = useCallback(
+    (order: Order) => {
+      if (!normalizedSearchQuery) return true
+      return (
+        order.orderNumber.toLowerCase().includes(normalizedSearchQuery) ||
+        order.shippingAddress.recipientName.toLowerCase().includes(normalizedSearchQuery)
+      )
+    },
+    [normalizedSearchQuery],
+  )
 
   // Filter orders by search
-  const filteredOrders = allOrders.filter(
-    (order) =>
-      order.orderNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.shippingAddress.recipientName.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  const filteredOrders = useMemo(() => allOrders.filter(matchesSearch), [allOrders, matchesSearch])
 
   const selectedOrder = selectedOrderId
     ? allOrders.find((order) => order._id === selectedOrderId) ?? null
@@ -610,11 +663,7 @@ export default function AdminOrdersPage() {
             <div className="flex h-full gap-4 px-1 min-w-max">
               {KANBAN_COLUMNS.map((status) => {
                 const config = STATUS_CONFIG[status]
-                const orders = ordersGrouped[status].filter(
-                  (order) =>
-                    order.orderNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                    order.shippingAddress.recipientName.toLowerCase().includes(searchQuery.toLowerCase())
-                )
+                const orders = ordersGrouped[status].filter(matchesSearch)
 
                 return (
                   <div key={status} className="flex flex-col w-64 shrink-0 h-full">
@@ -663,13 +712,13 @@ export default function AdminOrdersPage() {
               <table className="w-full">
                 <thead className="bg-[#002684]/5">
                   <tr>
-                    <th className="text-left p-4 text-sm-fluid font-semibold text-[#002684]">Order</th>
-                    <th className="text-left p-4 text-sm-fluid font-semibold text-[#002684]">Customer</th>
-                    <th className="text-left p-4 text-sm-fluid font-semibold text-[#002684]">Status</th>
-                    <th className="text-left p-4 text-sm-fluid font-semibold text-[#002684]">Payment</th>
-                    <th className="text-left p-4 text-sm-fluid font-semibold text-[#002684]">Total</th>
-                    <th className="text-left p-4 text-sm-fluid font-semibold text-[#002684]">Date</th>
-                    <th className="text-left p-4 text-sm-fluid font-semibold text-[#002684]">Actions</th>
+                    <th scope="col" className="text-left p-4 text-sm-fluid font-semibold text-[#002684]">Order</th>
+                    <th scope="col" className="text-left p-4 text-sm-fluid font-semibold text-[#002684]">Customer</th>
+                    <th scope="col" className="text-left p-4 text-sm-fluid font-semibold text-[#002684]">Status</th>
+                    <th scope="col" className="text-left p-4 text-sm-fluid font-semibold text-[#002684]">Payment</th>
+                    <th scope="col" className="text-left p-4 text-sm-fluid font-semibold text-[#002684]">Total</th>
+                    <th scope="col" className="text-left p-4 text-sm-fluid font-semibold text-[#002684]">Date</th>
+                    <th scope="col" className="text-left p-4 text-sm-fluid font-semibold text-[#002684]">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -701,13 +750,7 @@ export default function AdminOrdersPage() {
                               <span className="text-sm-fluid text-[#002684]">
                                 {order.paymentMethod === "bank_transfer" ? "Bank" : "COD"}
                               </span>
-                              <Badge
-                                className={
-                                  order.paymentStatus === "paid"
-                                    ? "bg-green-100 text-green-800"
-                                    : "bg-yellow-100 text-yellow-800"
-                                }
-                              >
+                              <Badge className={PAYMENT_STATUS_STYLES[order.paymentStatus] ?? "bg-yellow-100 text-yellow-800"}>
                                 {order.paymentStatus}
                               </Badge>
                             </div>

@@ -24,6 +24,15 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 
+const STATUS_BADGE_STYLES: Record<Doc<"orders">["status"], string> = {
+  confirmed: "bg-emerald-100 text-emerald-700 hover:bg-emerald-100/90",
+  shipped: "bg-blue-100 text-blue-700 hover:bg-blue-100/90",
+  delivered: "bg-green-100 text-green-700 hover:bg-green-100/90",
+  pending: "bg-amber-100 text-amber-700 hover:bg-amber-100/90",
+  processing: "bg-violet-100 text-violet-700 hover:bg-violet-100/90",
+  cancelled: "bg-red-100 text-red-700 hover:bg-red-100/90",
+}
+
 function formatCurrency(cents: number) {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -48,7 +57,7 @@ export default function AdminDashboardPage() {
 
   // Get counts from dedicated query
   const statusCounts = useQuery(api.orders.getStatusCounts)
-  const products = useQuery(api.products.listAllAdmin, { limit: 100 })
+  const productCount = useQuery(api.products.getProductCount)
 
   // Calculate metrics
   const totalOrders = statusCounts?.total ?? 0
@@ -133,11 +142,11 @@ export default function AdminDashboardPage() {
           </CardHeader>
           <CardContent className="pt-0">
             <p className="text-sm text-muted-foreground">Products</p>
-            {products === undefined ? (
+            {productCount === undefined ? (
               <Skeleton className="mt-1 h-8 w-12" />
             ) : (
               <p className="text-2xl font-bold text-gray-900">
-                {products?.length ?? 0}
+                {productCount ?? 0}
               </p>
             )}
           </CardContent>
@@ -171,7 +180,7 @@ export default function AdminDashboardPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {orders.slice(0, 5).map((order: Doc<"orders">) => (
+                  {orders.map((order: Doc<"orders">) => (
                     <TableRow key={order._id}>
                       <TableCell className="font-medium">
                         #{String(order._id).slice(-6).toUpperCase()}
@@ -191,18 +200,7 @@ export default function AdminDashboardPage() {
                           variant="secondary"
                           className={cn(
                             "rounded-full px-2.5 py-0.5 font-medium",
-                            order.status === "confirmed" &&
-                            "bg-emerald-100 text-emerald-700 hover:bg-emerald-100/90",
-                            order.status === "shipped" &&
-                            "bg-blue-100 text-blue-700 hover:bg-blue-100/90",
-                            order.status === "delivered" &&
-                            "bg-green-100 text-green-700 hover:bg-green-100/90",
-                            order.status === "pending" &&
-                            "bg-amber-100 text-amber-700 hover:bg-amber-100/90",
-                            order.status === "processing" &&
-                            "bg-violet-100 text-violet-700 hover:bg-violet-100/90",
-                            order.status === "cancelled" &&
-                            "bg-red-100 text-red-700 hover:bg-red-100/90"
+                            STATUS_BADGE_STYLES[order.status] ?? ""
                           )}
                         >
                           {order.status}
