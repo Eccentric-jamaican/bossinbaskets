@@ -6,30 +6,59 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
-export default function ContactForm() {
-  const [status, setStatus] = useState<"idle" | "submitting" | "success">("idle");
+type Status = "idle" | "submitting" | "success" | "error";
+type ContactPayload = {
+  name: string;
+  email: string;
+  company: string;
+  message: string;
+};
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+export default function ContactForm() {
+  const [status, setStatus] = useState<Status>("idle");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const simulateSubmission = (payload: ContactPayload) =>
+    new Promise<void>((resolve) => {
+      window.setTimeout(() => {
+        console.info("Contact form submission", payload);
+        resolve();
+      }, 600);
+    });
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setStatus("submitting");
+    setErrorMessage(null);
 
     const form = event.currentTarget;
     const formData = new FormData(form);
 
-    const payload = {
-      name: formData.get("name"),
-      email: formData.get("email"),
-      company: formData.get("company"),
-      message: formData.get("message"),
+    const payload: ContactPayload = {
+      name: String(formData.get("name") ?? ""),
+      email: String(formData.get("email") ?? ""),
+      company: String(formData.get("company") ?? ""),
+      message: String(formData.get("message") ?? ""),
     };
 
-    // Placeholder request – replace with real API/Convex mutation when ready.
-    window.setTimeout(() => {
-      console.info("Contact form submission", payload);
-      form.reset();
+    try {
+      // Placeholder request – replace with real API/Convex mutation when ready.
+      await simulateSubmission(payload);
+
       setStatus("success");
-      window.setTimeout(() => setStatus("idle"), 4000);
-    }, 600);
+      window.setTimeout(() => {
+        form.reset();
+        setStatus("idle");
+      }, 4000);
+    } catch (error) {
+      console.error("Contact form submission failed", error);
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "We couldn't send your message. Please try again."
+      );
+      setStatus("error");
+    }
   };
 
   return (
@@ -87,7 +116,13 @@ export default function ContactForm() {
       </Button>
 
       {status === "success" ? (
-        <p className="text-sm-fluid text-[#0f9b6c]">Thanks! We&apos;ll get back to you within one business day.</p>
+        <p role="status" aria-live="polite" aria-atomic="true" className="text-sm-fluid text-[#0f9b6c]">
+          Thanks! We&apos;ll get back to you within one business day.
+        </p>
+      ) : null}
+
+      {status === "error" && errorMessage ? (
+        <p className="text-sm-fluid text-[#dc2626]">{errorMessage}</p>
       ) : null}
     </form>
   );

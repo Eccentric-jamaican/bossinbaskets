@@ -1,5 +1,5 @@
 import Hero from "@/components/site/Hero";
-import Nav from "@/components/site/nav";
+import Nav from "@/components/site/Nav";
 import BossPicks from "@/components/site/BossPicks";
 import SeasonSection from "@/components/site/SeasonSection";
 import HowItWorks from "@/components/site/HowItWorks";

@@ -1,6 +1,6 @@
-import Nav from "@/components/site/nav";
+import Nav from "@/components/site/Nav";
 
-const beliefs = [
+const beliefs: { title: string; description: string }[] = [
   {
     title: "Craft with intent",
     description:
@@ -9,7 +9,7 @@ const beliefs = [
   {
     title: "Protect relationships",
     description:
-      "In business Retention is always cheaper than acquisition. We become your silent partner in client loyalty.",
+      "In business retention is always cheaper than acquisition. We become your silent partner in client loyalty.",
   },
   {
     title: "Stay nimble",

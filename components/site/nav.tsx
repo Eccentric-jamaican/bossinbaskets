@@ -23,7 +23,9 @@ function formatCents(cents: number) {
   return `$${(cents / 100).toFixed(2)}`
 }
 
-const navLinks = [
+type NavLink = { href: string; label: string }
+
+const navLinks: NavLink[] = [
   { href: "/", label: "Home" },
   { href: "/store", label: "Shop" },
   { href: "/about", label: "About" },

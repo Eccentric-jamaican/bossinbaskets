@@ -1,24 +1,39 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import Script from 'next/script'
 import { usePathname } from 'next/navigation'
 
 declare global {
   interface Window {
-    gtag?: (...args: unknown[]) => void
+    gtag?: GtagFunction
   }
 }
 
 const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID
 
+type GtagFunction = {
+  (
+    command: "config" | "set" | "js",
+    targetId?: string | number,
+    config?: Record<string, unknown>
+  ): void
+  (command: "event", eventName: string, params?: Record<string, unknown>): void
+}
+
 export function Analytics() {
   const pathname = usePathname()
+  const hasMountedRef = useRef(true)
 
   const isAdminRoute = pathname?.startsWith('/admin')
 
   useEffect(() => {
     if (!GA_MEASUREMENT_ID || !pathname || isAdminRoute) return
+
+    if (hasMountedRef.current) {
+      hasMountedRef.current = false
+      return
+    }
 
     window.gtag?.('config', GA_MEASUREMENT_ID, {
       page_path: pathname,
