@@ -23,6 +23,15 @@ function formatCents(cents: number) {
   return `$${(cents / 100).toFixed(2)}`
 }
 
+type NavLink = { href: string; label: string }
+
+const navLinks: NavLink[] = [
+  { href: "/", label: "Home" },
+  { href: "/store", label: "Shop" },
+  { href: "/about", label: "About" },
+  { href: "/contact", label: "Contact" },
+]
+
 export default function Nav() {
   const { isSignedIn, isLoaded } = useUser()
   const { signOut } = useClerk()
@@ -63,12 +72,16 @@ export default function Nav() {
                     <SheetTitle className="text-h3 font-medium">Menu</SheetTitle>
                   </SheetHeader>
                   <div className="flex flex-col gap-3 p-4">
-                    <Button asChild variant="ghost" className="h-12 min-h-[44px] justify-start text-body text-[#002684] hover:text-[#002684]/80">
-                      <Link href="/">Home</Link>
-                    </Button>
-                    <Button asChild variant="ghost" className="h-12 min-h-[44px] justify-start text-body text-[#002684] hover:text-[#002684]/80">
-                      <Link href="/store">Shop</Link>
-                    </Button>
+                    {navLinks.map((link) => (
+                      <Button
+                        key={link.href}
+                        asChild
+                        variant="ghost"
+                        className="h-12 min-h-[44px] justify-start text-body text-[#002684] hover:text-[#002684]/80"
+                      >
+                        <Link href={link.href}>{link.label}</Link>
+                      </Button>
+                    ))}
 
                     <div className="h-px w-full bg-border" />
 
@@ -113,15 +126,28 @@ export default function Nav() {
                 <Image
                   src="/nav/BossinBaskets.svg"
                   alt="BossinBaskets"
-                  width={190}
-                  height={22}
+                  width={135}
+                  height={18}
                   priority
-                  className="h-6 w-auto md:h-8"
+                  className="h-[18px] w-auto md:h-[24px]"
                 />
               </Link>
 
+              <nav className="hidden lg:flex items-center gap-1 ml-6">
+                {navLinks.map((link) => (
+                  <Button
+                    key={link.href}
+                    asChild
+                    variant="ghost"
+                    className="h-12 min-h-[44px] px-3 text-body font-semibold text-[#002684] hover:bg-transparent hover:text-[#002684]/80"
+                  >
+                    <Link href={link.href}>{link.label}</Link>
+                  </Button>
+                ))}
+              </nav>
+
               {currentUser && isAdmin && (
-                <nav className="hidden lg:flex items-center gap-1 ml-4">
+                <nav className="hidden lg:flex items-center gap-1 ml-3">
                   <Button asChild variant="ghost" className="h-12 min-h-[44px] px-3 text-body font-semibold text-[#002684] hover:bg-transparent hover:text-[#002684]/80">
                     <Link href="/admin">Admin</Link>
                   </Button>

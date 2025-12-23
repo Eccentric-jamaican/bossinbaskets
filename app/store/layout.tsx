@@ -1,6 +1,6 @@
 import { ReactNode } from "react"
 import type { Metadata } from "next"
-import Nav from "@/components/site/nav"
+import Nav from "@/components/site/Nav"
 
 export const metadata: Metadata = {
   title: "Store | BossinBaskets",

@@ -7,7 +7,7 @@ import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/s
 export default function AdminLayout({ children }: { children: ReactNode }) {
   return (
     <AdminGate>
-      <SidebarProvider>
+      <SidebarProvider className="overflow-x-hidden">
         <AdminSidebar />
         <SidebarInset className="bg-gray-50">
           {/* Top bar with sidebar trigger */}
