@@ -79,78 +79,71 @@ export default function AdminDashboardPage() {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {/* Recent Orders Revenue */}
-        <Card className="rounded-2xl border-0 bg-white shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50">
-              <DollarSign className="h-5 w-5 text-emerald-600" />
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        {[
+          {
+            key: "revenue",
+            label: "Recent Orders Revenue",
+            value: formatCurrency(recentOrdersRevenue),
+            icon: DollarSign,
+            iconAccent: "bg-emerald-50 text-emerald-600",
+            skeletonWidth: "w-24",
+            isLoading,
+          },
+          {
+            key: "total-orders",
+            label: "Total Orders",
+            value: totalOrders.toLocaleString(),
+            icon: ShoppingCart,
+            iconAccent: "bg-blue-50 text-blue-600",
+            skeletonWidth: "w-16",
+            isLoading,
+          },
+          {
+            key: "pending-orders",
+            label: "Pending Orders",
+            value: pendingOrders.toLocaleString(),
+            icon: Clock,
+            iconAccent: "bg-amber-50 text-amber-600",
+            skeletonWidth: "w-14",
+            isLoading,
+          },
+          {
+            key: "products",
+            label: "Products",
+            value: (productCount ?? 0).toLocaleString(),
+            icon: Package,
+            iconAccent: "bg-purple-50 text-purple-600",
+            skeletonWidth: "w-12",
+            isLoading: productCount === undefined,
+          },
+        ].map((metric) => (
+          <div
+            key={metric.key}
+            className="rounded-2xl border border-slate-100 bg-white p-4 shadow-[0_20px_45px_rgba(15,23,42,0.08)] md:shadow-sm"
+          >
+            <div className="flex items-center gap-4">
+              <div
+                className={cn(
+                  "flex h-12 w-12 items-center justify-center rounded-2xl",
+                  metric.iconAccent,
+                )}
+              >
+                <metric.icon className="h-5 w-5" />
+              </div>
+              <div className="flex flex-1 flex-col">
+                <p className="text-sm-fluid text-muted-foreground">{metric.label}</p>
+                {metric.isLoading ? (
+                  <Skeleton className={cn("mt-2 h-7", metric.skeletonWidth)} />
+                ) : (
+                  <p className="text-h3 font-semibold leading-tight text-gray-900">
+                    {metric.value}
+                  </p>
+                )}
+              </div>
             </div>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <p className="text-sm text-muted-foreground">Recent Orders Revenue</p>
-            {isLoading ? (
-              <Skeleton className="mt-1 h-8 w-24" />
-            ) : (
-              <p className="text-2xl font-bold text-gray-900">
-                {formatCurrency(recentOrdersRevenue)}
-              </p>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Total Orders */}
-        <Card className="rounded-2xl border-0 bg-white shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50">
-              <ShoppingCart className="h-5 w-5 text-blue-600" />
-            </div>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <p className="text-sm text-muted-foreground">Total Orders</p>
-            {isLoading ? (
-              <Skeleton className="mt-1 h-8 w-16" />
-            ) : (
-              <p className="text-2xl font-bold text-gray-900">{totalOrders}</p>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Pending Orders */}
-        <Card className="rounded-2xl border-0 bg-white shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50">
-              <Clock className="h-5 w-5 text-amber-600" />
-            </div>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <p className="text-sm text-muted-foreground">Pending Orders</p>
-            {isLoading ? (
-              <Skeleton className="mt-1 h-8 w-12" />
-            ) : (
-              <p className="text-2xl font-bold text-gray-900">{pendingOrders}</p>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Products */}
-        <Card className="rounded-2xl border-0 bg-white shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-50">
-              <Package className="h-5 w-5 text-purple-600" />
-            </div>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <p className="text-sm text-muted-foreground">Products</p>
-            {productCount === undefined ? (
-              <Skeleton className="mt-1 h-8 w-12" />
-            ) : (
-              <p className="text-2xl font-bold text-gray-900">
-                {productCount ?? 0}
-              </p>
-            )}
-          </CardContent>
-        </Card>
+          </div>
+        ))}
       </div>
 
       {/* Recent Orders Section */}
