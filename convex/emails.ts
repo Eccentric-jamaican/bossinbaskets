@@ -17,15 +17,17 @@ export const sendWelcomeEmail = internalAction({
       return { success: false, error: "Email service not configured" }
     }
 
-    const userName = args.name || "there"
+    // Extract first name only
+    const fullName = args.name || "there"
+    const firstName = fullName.split(" ")[0]
     const resend = new Resend(RESEND_API_KEY)
 
     try {
       const { data, error } = await resend.emails.send({
         from: "BossinBaskets <hi@bossinbaskets.shop>",
         to: [args.email],
-        subject: `Welcome to BossinBaskets, ${userName}!`,
-        html: generateWelcomeHtml(userName),
+        subject: `Welcome to BossinBaskets, ${firstName}!`,
+        html: generateWelcomeHtml(firstName),
       })
 
       if (error) {
@@ -127,43 +129,39 @@ function generateWelcomeHtml(name: string): string {
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Welcome to BossinBaskets</title>
       </head>
-      <body style="background-color: #f7f4ee; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 0;">
+      <body style="background-color: #ffffff; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 0;">
         <div style="max-width: 560px; margin: 0 auto; padding: 40px 20px;">
           <!-- Logo -->
-          <div style="text-align: center; margin-bottom: 32px;">
-            <img src="https://bossinbaskets.shop/logo.png" alt="BossinBaskets" width="150" style="display: inline-block;">
+          <div style="text-align: center; margin-bottom: 40px;">
+            <img src="https://bossinbaskets.shop/icon.png" alt="BossinBaskets" width="120" height="120" style="display: inline-block;">
           </div>
 
-          <!-- Welcome Animation GIF - Commented out for now -->
-          <!--
-          <div style="text-align: center; margin-bottom: 32px;">
-            <img src="https://bossinbaskets.shop/emails/welcome-animation.gif" alt="Welcome" width="280" style="display: inline-block; border-radius: 16px;">
-          </div>
-          -->
+          <!-- Main Content Card -->
+          <div style="background-color: #f7f4ee; border-radius: 16px; padding: 32px; margin-bottom: 24px;">
+            <h1 style="color: #002684; font-size: 28px; font-weight: bold; text-align: center; margin: 0 0 24px; font-family: Georgia, 'Times New Roman', serif;">
+              Welcome to BossinBaskets!
+            </h1>
 
-          <h1 style="color: #002684; font-size: 28px; font-weight: bold; text-align: center; margin: 0 0 24px; font-family: Georgia, 'Times New Roman', serif;">
-            Welcome to BossinBaskets!
-          </h1>
+            <p style="color: #002684; font-size: 16px; line-height: 24px; margin: 0 0 16px;">
+              Hi ${name},
+            </p>
 
-          <p style="color: #002684; font-size: 16px; line-height: 24px; margin: 0 0 16px;">
-            Hi ${name},
-          </p>
+            <p style="color: #002684; font-size: 16px; line-height: 24px; margin: 0 0 16px;">
+              Thank you for joining BossinBaskets! We're thrilled to have you as part of our community of thoughtful gift-givers.
+            </p>
 
-          <p style="color: #002684; font-size: 16px; line-height: 24px; margin: 0 0 16px;">
-            Thank you for joining BossinBaskets! We're thrilled to have you as part of our community of thoughtful gift-givers.
-          </p>
+            <p style="color: #002684; font-size: 16px; line-height: 24px; margin: 0 0 24px;">
+              Explore our curated collection of premium gift baskets, perfect for every occasion. Whether you're celebrating a birthday, anniversary, or just want to show someone you care, we have something special for you.
+            </p>
 
-          <p style="color: #002684; font-size: 16px; line-height: 24px; margin: 0 0 24px;">
-            Explore our curated collection of premium gift baskets, perfect for every occasion. Whether you're celebrating a birthday, anniversary, or just want to show someone you care, we have something special for you.
-          </p>
-
-          <div style="text-align: center; margin: 32px 0;">
-            <a href="https://bossinbaskets.shop/store" style="background-color: #1d4ed8; border-radius: 9999px; color: #ffffff; font-size: 16px; font-weight: 600; text-decoration: none; padding: 14px 32px; display: inline-block;">
-              Start Shopping
-            </a>
+            <div style="text-align: center; margin: 32px 0 0;">
+              <a href="https://bossinbaskets.shop/store" style="background-color: #002684; border-radius: 9999px; color: #ffffff; font-size: 16px; font-weight: 600; text-decoration: none; padding: 14px 32px; display: inline-block;">
+                Start Shopping
+              </a>
+            </div>
           </div>
 
-          <p style="color: #002684; font-size: 14px; opacity: 0.7; text-align: center; margin-top: 32px;">
+          <p style="color: #002684; font-size: 14px; opacity: 0.7; text-align: center; margin: 24px 0;">
             Questions? Reply to this email or contact us at support@bossinbaskets.shop
           </p>
 
@@ -204,6 +202,9 @@ function generateOrderConfirmationHtml(args: {
   isGift: boolean
   giftMessage?: string
 }): string {
+  // Extract first name only
+  const firstName = args.customerName.split(" ")[0]
+
   const itemsHtml = args.items
     .map(
       (item) => `
@@ -289,30 +290,32 @@ function generateOrderConfirmationHtml(args: {
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Order Confirmation - ${args.orderNumber}</title>
       </head>
-      <body style="background-color: #f7f4ee; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 0;">
+      <body style="background-color: #ffffff; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 0;">
         <div style="max-width: 560px; margin: 0 auto; padding: 40px 20px;">
           <!-- Logo -->
-          <div style="text-align: center; margin-bottom: 32px;">
-            <img src="https://bossinbaskets.shop/logo.png" alt="BossinBaskets" width="150" style="display: inline-block;">
+          <div style="text-align: center; margin-bottom: 40px;">
+            <img src="https://bossinbaskets.shop/icon.png" alt="BossinBaskets" width="120" height="120" style="display: inline-block;">
           </div>
 
-          <h1 style="color: #002684; font-size: 28px; font-weight: bold; text-align: center; margin: 0 0 24px; font-family: Georgia, 'Times New Roman', serif;">
-            Order Confirmed!
-          </h1>
+          <!-- Main Content Card -->
+          <div style="background-color: #f7f4ee; border-radius: 16px; padding: 32px; margin-bottom: 24px;">
+            <h1 style="color: #002684; font-size: 28px; font-weight: bold; text-align: center; margin: 0 0 24px; font-family: Georgia, 'Times New Roman', serif;">
+              Order Confirmed!
+            </h1>
 
-          <p style="color: #002684; font-size: 16px; line-height: 24px; margin: 0 0 16px;">
-            Hi ${args.customerName},
-          </p>
+            <p style="color: #002684; font-size: 16px; line-height: 24px; margin: 0 0 16px;">
+              Hi ${firstName},
+            </p>
 
-          <p style="color: #002684; font-size: 16px; line-height: 24px; margin: 0 0 24px;">
-            Thank you for your order! We've received your order and will begin processing it shortly.
-          </p>
+            <p style="color: #002684; font-size: 16px; line-height: 24px; margin: 0 0 24px;">
+              Thank you for your order! We've received your order and will begin processing it shortly.
+            </p>
 
-          <!-- Order Number -->
-          <div style="background-color: #ffffff; border-radius: 16px; padding: 24px; text-align: center; margin: 24px 0;">
-            <p style="color: #002684; font-size: 14px; opacity: 0.7; margin: 0;">Order Number</p>
-            <p style="color: #002684; font-size: 20px; font-weight: bold; margin: 8px 0 0;">${args.orderNumber}</p>
-          </div>
+            <!-- Order Number -->
+            <div style="background-color: #ffffff; border-radius: 16px; padding: 24px; text-align: center; margin: 24px 0;">
+              <p style="color: #002684; font-size: 14px; opacity: 0.7; margin: 0;">Order Number</p>
+              <p style="color: #002684; font-size: 20px; font-weight: bold; margin: 8px 0 0;">${args.orderNumber}</p>
+            </div>
 
           <!-- Order Items -->
           <h3 style="color: #002684; font-size: 18px; font-weight: 600; margin: 24px 0 16px;">Order Items</h3>
@@ -358,13 +361,14 @@ function generateOrderConfirmationHtml(args: {
 
           ${paymentInstructions}
 
-          <div style="text-align: center; margin: 32px 0;">
-            <a href="https://bossinbaskets.shop/store" style="background-color: #1d4ed8; border-radius: 9999px; color: #ffffff; font-size: 16px; font-weight: 600; text-decoration: none; padding: 14px 32px; display: inline-block;">
-              Continue Shopping
-            </a>
+            <div style="text-align: center; margin: 32px 0 0;">
+              <a href="https://bossinbaskets.shop/store" style="background-color: #002684; border-radius: 9999px; color: #ffffff; font-size: 16px; font-weight: 600; text-decoration: none; padding: 14px 32px; display: inline-block;">
+                Continue Shopping
+              </a>
+            </div>
           </div>
 
-          <p style="color: #002684; font-size: 14px; opacity: 0.7; text-align: center; margin-top: 32px;">
+          <p style="color: #002684; font-size: 14px; opacity: 0.7; text-align: center; margin: 24px 0;">
             Questions about your order? Reply to this email or contact support@bossinbaskets.shop
           </p>
 

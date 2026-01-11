@@ -4,7 +4,12 @@
       "Bash(bun add:*)",
       "WebSearch",
       "WebFetch(domain:resend.com)",
-      "Bash(bun run dev)"
+      "Bash(bun run dev)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push)",
+      "WebFetch(domain:docs.convex.dev)",
+      "Bash(npx convex deploy)"
     ]
   }
 }
