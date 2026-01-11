@@ -22,7 +22,7 @@ export const sendWelcomeEmail = internalAction({
 
     try {
       const { data, error } = await resend.emails.send({
-        from: "BossinBaskets <onboarding@resend.dev>",
+        from: "BossinBaskets <hi@bossinbaskets.shop>",
         to: [args.email],
         subject: `Welcome to BossinBaskets, ${userName}!`,
         html: generateWelcomeHtml(userName),
@@ -90,7 +90,7 @@ export const sendOrderConfirmationEmail = internalAction({
 
     try {
       const { data, error } = await resend.emails.send({
-        from: "BossinBaskets <onboarding@resend.dev>",
+        from: "BossinBaskets <orders@bossinbaskets.shop>",
         to: [args.email],
         subject: `Order Confirmed - ${args.orderNumber}`,
         html: generateOrderConfirmationHtml(args),
@@ -131,12 +131,12 @@ function generateWelcomeHtml(name: string): string {
         <div style="max-width: 560px; margin: 0 auto; padding: 40px 20px;">
           <!-- Logo -->
           <div style="text-align: center; margin-bottom: 32px;">
-            <img src="https://bossinbaskets.com/logo.png" alt="BossinBaskets" width="150" style="display: inline-block;">
+            <img src="https://bossinbaskets.shop/logo.png" alt="BossinBaskets" width="150" style="display: inline-block;">
           </div>
 
           <!-- Welcome Animation GIF -->
           <div style="text-align: center; margin-bottom: 32px;">
-            <img src="https://bossinbaskets.com/emails/welcome-animation.gif" alt="Welcome" width="280" style="display: inline-block; border-radius: 16px;">
+            <img src="https://bossinbaskets.shop/emails/welcome-animation.gif" alt="Welcome" width="280" style="display: inline-block; border-radius: 16px;">
           </div>
 
           <h1 style="color: #002684; font-size: 28px; font-weight: bold; text-align: center; margin: 0 0 24px; font-family: Georgia, 'Times New Roman', serif;">
@@ -156,13 +156,13 @@ function generateWelcomeHtml(name: string): string {
           </p>
 
           <div style="text-align: center; margin: 32px 0;">
-            <a href="https://bossinbaskets.com/store" style="background-color: #1d4ed8; border-radius: 9999px; color: #ffffff; font-size: 16px; font-weight: 600; text-decoration: none; padding: 14px 32px; display: inline-block;">
+            <a href="https://bossinbaskets.shop/store" style="background-color: #1d4ed8; border-radius: 9999px; color: #ffffff; font-size: 16px; font-weight: 600; text-decoration: none; padding: 14px 32px; display: inline-block;">
               Start Shopping
             </a>
           </div>
 
           <p style="color: #002684; font-size: 14px; opacity: 0.7; text-align: center; margin-top: 32px;">
-            Questions? Reply to this email or contact us at support@bossinbaskets.com
+            Questions? Reply to this email or contact us at support@bossinbaskets.shop
           </p>
 
           <div style="border-top: 1px solid rgba(0, 38, 132, 0.1); margin-top: 32px; padding-top: 24px; text-align: center;">
@@ -210,7 +210,7 @@ function generateOrderConfirmationHtml(args: {
           <table cellpadding="0" cellspacing="0" border="0" width="100%">
             <tr>
               <td width="64" style="vertical-align: top;">
-                <img src="${item.productImage || "https://bossinbaskets.com/placeholder.jpg"}" alt="${item.productName}" width="64" height="64" style="border-radius: 8px; object-fit: cover;">
+                <img src="${item.productImage || "https://bossinbaskets.shop/placeholder.jpg"}" alt="${item.productName}" width="64" height="64" style="border-radius: 8px; object-fit: cover;">
               </td>
               <td style="padding-left: 16px; vertical-align: top;">
                 <p style="color: #002684; font-size: 16px; font-weight: 500; margin: 0 0 4px;">${item.productName}</p>
@@ -291,7 +291,7 @@ function generateOrderConfirmationHtml(args: {
         <div style="max-width: 560px; margin: 0 auto; padding: 40px 20px;">
           <!-- Logo -->
           <div style="text-align: center; margin-bottom: 32px;">
-            <img src="https://bossinbaskets.com/logo.png" alt="BossinBaskets" width="150" style="display: inline-block;">
+            <img src="https://bossinbaskets.shop/logo.png" alt="BossinBaskets" width="150" style="display: inline-block;">
           </div>
 
           <h1 style="color: #002684; font-size: 28px; font-weight: bold; text-align: center; margin: 0 0 24px; font-family: Georgia, 'Times New Roman', serif;">
@@ -357,13 +357,13 @@ function generateOrderConfirmationHtml(args: {
           ${paymentInstructions}
 
           <div style="text-align: center; margin: 32px 0;">
-            <a href="https://bossinbaskets.com/store" style="background-color: #1d4ed8; border-radius: 9999px; color: #ffffff; font-size: 16px; font-weight: 600; text-decoration: none; padding: 14px 32px; display: inline-block;">
+            <a href="https://bossinbaskets.shop/store" style="background-color: #1d4ed8; border-radius: 9999px; color: #ffffff; font-size: 16px; font-weight: 600; text-decoration: none; padding: 14px 32px; display: inline-block;">
               Continue Shopping
             </a>
           </div>
 
           <p style="color: #002684; font-size: 14px; opacity: 0.7; text-align: center; margin-top: 32px;">
-            Questions about your order? Reply to this email or contact support@bossinbaskets.com
+            Questions about your order? Reply to this email or contact support@bossinbaskets.shop
           </p>
 
           <div style="border-top: 1px solid rgba(0, 38, 132, 0.1); margin-top: 32px; padding-top: 24px; text-align: center;">
