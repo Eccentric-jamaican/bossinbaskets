@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { query, mutation, internalMutation } from "./_generated/server";
-import { Id } from "./_generated/dataModel";
+import { internal } from "./_generated/api";
 
 // Get current user by Clerk ID
 export const getByClerkId = query({
@@ -100,6 +100,14 @@ export const upsert = mutation({
       name: args.name,
       role: "customer",
     });
+
+    // Schedule welcome email for new users
+    await ctx.scheduler.runAfter(0, internal.emails.sendWelcomeEmail, {
+      userId,
+      email: args.email,
+      name: args.name,
+    });
+
     return userId;
   },
 });

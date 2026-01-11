@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { query, mutation, internalMutation } from "./_generated/server";
 import { paginationOptsValidator } from "convex/server";
+import { internal } from "./_generated/api";
 
 // Shared validators
 const orderStatusValidator = v.union(
@@ -260,12 +261,40 @@ export const createFromCart = mutation({
       paymentStatus: "pending",
     });
 
-    await ctx.db.patch(orderId, {
-      orderNumber: generateOrderNumber(orderId),
-    });
+    const orderNumber = generateOrderNumber(orderId);
+    await ctx.db.patch(orderId, { orderNumber });
 
     // Clear cart
     await Promise.all(cartItems.map((item) => ctx.db.delete(item._id)));
+
+    // Schedule order confirmation email
+    await ctx.scheduler.runAfter(0, internal.emails.sendOrderConfirmationEmail, {
+      orderId,
+      email: user.email,
+      customerName: args.shippingAddress.recipientName,
+      orderNumber,
+      items: orderItems.map((item) => ({
+        productName: item.productName,
+        productImage: item.productImage,
+        price: item.price,
+        quantity: item.quantity,
+      })),
+      subtotal,
+      shippingCost,
+      tax,
+      total,
+      shippingAddress: {
+        recipientName: args.shippingAddress.recipientName,
+        street: args.shippingAddress.street,
+        city: args.shippingAddress.city,
+        state: args.shippingAddress.state,
+        zipCode: args.shippingAddress.zipCode,
+        country: args.shippingAddress.country,
+      },
+      paymentMethod: args.paymentMethod,
+      isGift: args.isGift,
+      giftMessage: args.giftMessage,
+    });
 
     return orderId;
   },

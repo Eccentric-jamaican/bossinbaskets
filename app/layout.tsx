@@ -5,6 +5,8 @@ import { ClerkProvider } from "@clerk/nextjs";
 import ConvexClientProvider from "../components/ConvexClientProvider";
 import { Toaster } from "@/components/ui/sonner";
 import { Analytics } from "@/components/Analytics";
+import { CookieConsentProvider } from "@/components/CookieConsentProvider";
+import { CookieConsentBanner } from "@/components/CookieConsentBanner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -47,9 +49,12 @@ export default function RootLayout({
       <body className={`${geistSans.variable} ${geistMono.variable} ${playfair.variable} antialiased`}>
         <ClerkProvider>
           <ConvexClientProvider>
-            {children}
-            <Toaster position="top-center" richColors closeButton />
-            <Analytics />
+            <CookieConsentProvider>
+              {children}
+              <Toaster position="top-center" richColors closeButton />
+              <Analytics />
+              <CookieConsentBanner />
+            </CookieConsentProvider>
           </ConvexClientProvider>
         </ClerkProvider>
       </body>
