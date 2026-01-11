@@ -13,6 +13,7 @@ import { Spinner } from "@/components/ui/spinner"
 import { Star, Truck, ShieldCheck, Gift } from "lucide-react"
 import { toast } from "sonner"
 import { useErrorNotice } from "@/hooks/useErrorNotice"
+import { useAnalytics } from "@/hooks/useAnalytics"
 
 export default function ProductDetailPage() {
   const params = useParams()
@@ -27,6 +28,7 @@ export default function ProductDetailPage() {
     title: "We couldn't add that to your cart",
     fallbackDescription: "Please refresh or try again shortly.",
   })
+  const { viewItem, addToCart: trackAddToCart } = useAnalytics()
   const [selectedImageIndex, setSelectedImageIndex] = useState(0)
   const [quantity, setQuantity] = useState(1)
   const [isAddingToCart, setIsAddingToCart] = useState(false)
@@ -39,6 +41,17 @@ export default function ProductDetailPage() {
       setSelectedImageIndex(0)
     }
   }, [product, selectedImageIndex])
+
+  // Track product view
+  useEffect(() => {
+    if (product) {
+      viewItem({
+        id: product._id,
+        name: product.name,
+        price: product.price,
+      })
+    }
+  }, [product, viewItem])
 
   if (product === undefined) {
     return <ProductSkeleton />
@@ -98,7 +111,14 @@ export default function ProductDetailPage() {
       })
       setAddToCartSuccess("Added to cart")
       toast.success("Basket added", {
-        description: "It’s waiting for you in the cart when you're ready.",
+        description: "It's waiting for you in the cart when you're ready.",
+      })
+      // Track add to cart
+      trackAddToCart({
+        id: product._id,
+        name: product.name,
+        price: product.price,
+        quantity,
       })
     } catch (error) {
       const friendlyMessage = showError(error, {

@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { usePaginatedQuery, useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { ProductCard } from "@/components/store/ProductCardClient"
@@ -29,6 +29,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Input } from "@/components/ui/input"
 import { Slider } from "@/components/ui/slider"
 import { SlidersHorizontal, X } from "lucide-react"
+import { useAnalytics } from "@/hooks/useAnalytics"
 
 type SortOption = "newest" | "priceAsc" | "priceDesc"
 
@@ -134,6 +135,8 @@ export default function StorePage() {
   const [draftFilters, setDraftFilters] = useState<StoreFilters>(defaultFilters)
   const [appliedFilters, setAppliedFilters] = useState<StoreFilters>(defaultFilters)
   const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false)
+  const { viewItemList } = useAnalytics()
+  const hasTrackedRef = useRef(false)
 
   const normalizedAppliedFilters = useMemo(
     () => normalizeFilters(appliedFilters, priceBounds),
@@ -171,6 +174,21 @@ export default function StorePage() {
   const canLoadMoreProducts = productsStatus === "CanLoadMore"
   const isLoadingMoreProducts = productsStatus === "LoadingMore"
   const isCategoriesLoading = !categories
+
+  // Track product list view
+  useEffect(() => {
+    if (!isProductsLoading && products.length > 0 && !hasTrackedRef.current) {
+      hasTrackedRef.current = true
+      viewItemList(
+        products.map((p) => ({
+          id: p._id,
+          name: p.name,
+          price: p.price,
+        })),
+        "Store - All Products"
+      )
+    }
+  }, [isProductsLoading, products, viewItemList])
 
   const activeChips = useMemo(() => {
     const f = filtersForQuery

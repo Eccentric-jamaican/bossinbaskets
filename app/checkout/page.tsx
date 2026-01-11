@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useUser } from "@clerk/nextjs"
@@ -17,6 +17,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Spinner } from "@/components/ui/spinner"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useErrorNotice } from "@/hooks/useErrorNotice"
+import { useAnalytics } from "@/hooks/useAnalytics"
 
 type Step = "shipping" | "payment" | "confirmation"
 
@@ -36,6 +37,16 @@ export default function CheckoutPage() {
     context: "Checkout",
     fallbackDescription: "Please review your details and try again shortly.",
   })
+  const {
+    beginCheckout,
+    addShippingInfo,
+    addPaymentInfo,
+    purchase,
+  } = useAnalytics()
+  const hasTrackedCheckoutRef = useRef(false)
+  const hasTrackedShippingRef = useRef(false)
+  const hasTrackedPaymentRef = useRef(false)
+  const cartItemsForTrackingRef = useRef<typeof cartItems>(null)
 
   const [step, setStep] = useState<Step>("shipping")
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -72,6 +83,24 @@ export default function CheckoutPage() {
     setPhone((prev) => (prev.trim() ? prev : (defaultAddress.phone ?? "")))
   }, [defaultAddress])
 
+  // Track begin_checkout when cart loads
+  useEffect(() => {
+    if (cartItems && cartItems.length > 0 && !hasTrackedCheckoutRef.current) {
+      hasTrackedCheckoutRef.current = true
+      cartItemsForTrackingRef.current = cartItems
+      beginCheckout(
+        cartItems
+          .filter((item) => item.product)
+          .map((item) => ({
+            id: String(item.productId),
+            name: item.product!.name,
+            price: item.product!.price,
+            quantity: item.quantity,
+          }))
+      )
+    }
+  }, [cartItems, beginCheckout])
+
   // Calculate totals
   const subtotalCents = (cartItems ?? []).reduce((sum, item) => {
     if (!item.product) return sum
@@ -101,6 +130,22 @@ export default function CheckoutPage() {
     setIsSubmitting(true)
     setError(null)
 
+    // Track payment info before placing order
+    if (!hasTrackedPaymentRef.current && cartItems) {
+      hasTrackedPaymentRef.current = true
+      addPaymentInfo(
+        cartItems
+          .filter((item) => item.product)
+          .map((item) => ({
+            id: String(item.productId),
+            name: item.product!.name,
+            price: item.product!.price,
+            quantity: item.quantity,
+          })),
+        paymentMethod
+      )
+    }
+
     try {
       // Store total before placing order (cart will be cleared after)
       const finalTotal = total
@@ -124,6 +169,25 @@ export default function CheckoutPage() {
       setConfirmedTotal(finalTotal)
       setOrderNumber(orderId)
       setStep("confirmation")
+
+      // Track purchase event
+      const itemsForTracking = cartItemsForTrackingRef.current ?? cartItems
+      if (itemsForTracking) {
+        purchase({
+          transactionId: orderId,
+          value: finalTotal,
+          tax,
+          shipping: shippingCost,
+          items: itemsForTracking
+            .filter((item) => item.product)
+            .map((item) => ({
+              id: String(item.productId),
+              name: item.product!.name,
+              price: item.product!.price,
+              quantity: item.quantity,
+            })),
+        })
+      }
     } catch (err) {
       const friendly = showError(err)
       setError(friendly)
@@ -415,7 +479,24 @@ export default function CheckoutPage() {
                   )}
 
                   <Button
-                    onClick={() => setStep("payment")}
+                    onClick={() => {
+                      // Track shipping info
+                      if (!hasTrackedShippingRef.current && cartItems) {
+                        hasTrackedShippingRef.current = true
+                        addShippingInfo(
+                          cartItems
+                            .filter((item) => item.product)
+                            .map((item) => ({
+                              id: String(item.productId),
+                              name: item.product!.name,
+                              price: item.product!.price,
+                              quantity: item.quantity,
+                            })),
+                          "standard"
+                        )
+                      }
+                      setStep("payment")
+                    }}
                     disabled={!isShippingValid}
                     className="h-12 min-h-[44px] rounded-full bg-[#1d4ed8] px-6 text-white hover:bg-[#1d4ed8]/90 mt-4"
                   >

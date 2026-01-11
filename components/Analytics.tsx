@@ -1,12 +1,14 @@
-'use client'
+"use client"
 
-import { useEffect, useRef } from 'react'
-import Script from 'next/script'
-import { usePathname } from 'next/navigation'
+import { useEffect, useRef } from "react"
+import Script from "next/script"
+import { usePathname } from "next/navigation"
+import { useCookieConsent } from "./CookieConsentProvider"
 
 declare global {
   interface Window {
     gtag?: GtagFunction
+    dataLayer?: unknown[]
   }
 }
 
@@ -19,28 +21,37 @@ type GtagFunction = {
     config?: Record<string, unknown>
   ): void
   (command: "event", eventName: string, params?: Record<string, unknown>): void
+  (
+    command: "consent",
+    action: "update" | "default",
+    params: Record<string, string>
+  ): void
 }
 
 export function Analytics() {
   const pathname = usePathname()
   const hasMountedRef = useRef(true)
+  const { preferences, hasConsented } = useCookieConsent()
 
-  const isAdminRoute = pathname?.startsWith('/admin')
+  const isAdminRoute = pathname?.startsWith("/admin")
+  const analyticsEnabled = hasConsented && preferences.analytics
 
   useEffect(() => {
-    if (!GA_MEASUREMENT_ID || !pathname || isAdminRoute) return
+    if (!GA_MEASUREMENT_ID || !pathname || isAdminRoute || !analyticsEnabled)
+      return
 
     if (hasMountedRef.current) {
       hasMountedRef.current = false
       return
     }
 
-    window.gtag?.('config', GA_MEASUREMENT_ID, {
+    window.gtag?.("config", GA_MEASUREMENT_ID, {
       page_path: pathname,
     })
-  }, [pathname, isAdminRoute])
+  }, [pathname, isAdminRoute, analyticsEnabled])
 
-  if (!GA_MEASUREMENT_ID || isAdminRoute) {
+  // Don't load GA at all if no consent or admin route
+  if (!GA_MEASUREMENT_ID || isAdminRoute || !analyticsEnabled) {
     return null
   }
 
@@ -54,6 +65,13 @@ export function Analytics() {
         {`
           window.dataLayer = window.dataLayer || [];
           function gtag(){dataLayer.push(arguments);}
+
+          // Set consent state
+          gtag('consent', 'default', {
+            'analytics_storage': 'granted',
+            'ad_storage': '${preferences.marketing ? "granted" : "denied"}'
+          });
+
           gtag('js', new Date());
           gtag('config', '${GA_MEASUREMENT_ID}');
         `}
