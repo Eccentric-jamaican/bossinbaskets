@@ -134,10 +134,12 @@ function generateWelcomeHtml(name: string): string {
             <img src="https://bossinbaskets.shop/logo.png" alt="BossinBaskets" width="150" style="display: inline-block;">
           </div>
 
-          <!-- Welcome Animation GIF -->
+          <!-- Welcome Animation GIF - Commented out for now -->
+          <!--
           <div style="text-align: center; margin-bottom: 32px;">
             <img src="https://bossinbaskets.shop/emails/welcome-animation.gif" alt="Welcome" width="280" style="display: inline-block; border-radius: 16px;">
           </div>
+          -->
 
           <h1 style="color: #002684; font-size: 28px; font-weight: bold; text-align: center; margin: 0 0 24px; font-family: Georgia, 'Times New Roman', serif;">
             Welcome to BossinBaskets!
