@@ -5,28 +5,7 @@ import Script from "next/script"
 import { usePathname } from "next/navigation"
 import { useCookieConsent } from "./CookieConsentProvider"
 
-declare global {
-  interface Window {
-    gtag?: GtagFunction
-    dataLayer?: unknown[]
-  }
-}
-
 const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID
-
-type GtagFunction = {
-  (
-    command: "config" | "set" | "js",
-    targetId?: string | number,
-    config?: Record<string, unknown>
-  ): void
-  (command: "event", eventName: string, params?: Record<string, unknown>): void
-  (
-    command: "consent",
-    action: "update" | "default",
-    params: Record<string, string>
-  ): void
-}
 
 export function Analytics() {
   const pathname = usePathname()
